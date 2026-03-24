@@ -1,0 +1,98 @@
+'use client';
+
+import { Users, User, MapPin } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ACCENT_COLORS, type Album, type AccentColor } from '@/lib/data';
+import { cn } from '@/lib/utils';
+
+interface AlbumCardProps {
+  album: Album;
+  accent: AccentColor;
+  onClick: () => void;
+}
+
+export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
+  const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
+
+  return (
+    <button
+      onClick={onClick}
+      className="group relative flex flex-col w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
+      aria-label={`アルバムを開く: ${album.title}`}
+    >
+      {/* カバー画像 */}
+      <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-muted">
+        <img
+          src={album.coverUrl}
+          alt={`${album.title}のカバー`}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          crossOrigin="anonymous"
+        />
+        {/* グラデーションオーバーレイ */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+        {/* タイプバッジ */}
+        <div className="absolute top-2.5 right-2.5">
+          {album.type === 'family' ? (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-white',
+                accentConfig.bg
+              )}
+            >
+              <Users size={10} />
+              共有
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-black/60 text-white backdrop-blur-sm">
+              <User size={10} />
+              非公開
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* カード情報 */}
+      <div className="mt-2.5 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-medium text-foreground truncate leading-snug">
+            {album.title}
+          </h3>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {album.location && (
+              <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+                <MapPin size={9} className="shrink-0" />
+                {album.location}
+              </span>
+            )}
+            {album.location && (
+              <span className="text-[11px] text-muted-foreground/50">·</span>
+            )}
+            <span className="text-[11px] text-muted-foreground">
+              {album.photos.length}枚
+            </span>
+          </div>
+        </div>
+
+        {/* 共有アルバムのメンバーアバター */}
+        {album.type === 'family' && (
+          <Avatar className="h-6 w-6 shrink-0 ring-1 ring-border mt-0.5">
+            {album.memberAvatar ? (
+              <AvatarImage
+                src={album.memberAvatar}
+                alt={album.memberName ?? 'メンバー'}
+              />
+            ) : null}
+            <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+              {album.memberName ? (
+                album.memberName.slice(0, 1)
+              ) : (
+                <Users size={12} />
+              )}
+            </AvatarFallback>
+          </Avatar>
+        )}
+      </div>
+    </button>
+  );
+}

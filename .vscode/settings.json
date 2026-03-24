@@ -1,0 +1,4 @@
+{
+  "typescript.tsserver.web.projectWideIntellisense.suppressSemanticErrors": true,
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore"
+}

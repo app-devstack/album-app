@@ -1,0 +1,9 @@
+node_modules
+build
+dist
+tsconfig*.json
+/coverage
+/*.md
+/.github
+/.vscode
+/.next
