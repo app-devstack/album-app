@@ -107,7 +107,6 @@ export function AlbumDetail({
         file,
         alt: file.name.replace(/\.[^.]+$/, ''),
         mediaType: isVideo ? 'video' : 'image',
-        url: '', // Will be set by the server after upload
       });
     }
     e.target.value = '';

@@ -11,14 +11,16 @@ export const photoKeys = {
 
 // Fetchers
 const getPhotos = async (albumId: string): Promise<Photo[]> => {
-  const res = await api.albums[':albumId'].photos.$get({ param: { albumId } });
+  const res = await api.photos.album[':albumId'].$get({
+    param: { albumId },
+  });
   if (!res.ok) {
     throw new Error('Failed to fetch photos');
   }
   return res.json();
 };
 
-interface CreatePhotoPayload extends Omit<NewPhoto, 'id' | 'addedAt'> {
+interface CreatePhotoPayload extends Omit<NewPhoto, 'id' | 'addedAt' | 'url'> {
   file: File;
 }
 
@@ -28,7 +30,7 @@ const createPhoto = async ({
   ...photoData
 }: CreatePhotoPayload): Promise<Photo> => {
   // 1. Get a signed URL from the API
-  const { signedUrl, key } = await api.albums[':albumId'].photos['upload-url']
+  const { signedUrl, key } = await api.photos.album[':albumId']['upload-url']
     .$post({
       param: { albumId },
       json: {
@@ -48,9 +50,9 @@ const createPhoto = async ({
   });
 
   // 3. Save photo metadata to the database (URL will be generated from R2 key on server)
-  const res = await api.albums[':albumId'].photos.$post({
+  const res = await api.photos.album[':albumId'].$post({
     param: { albumId },
-    json: { ...photoData, url: '', r2Key: key },
+    json: { ...photoData, r2Key: key },
   });
   if (!res.ok) {
     throw new Error('Failed to create photo');
