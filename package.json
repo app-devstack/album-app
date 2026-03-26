@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "dev:vinext": "vite dev --port 3001",
-    "build:vinext": "vite build"
+    "build:vinext": "vite build",
+    "secrets:upload": "sh scripts/upload-secrets.sh"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20260301.1",
