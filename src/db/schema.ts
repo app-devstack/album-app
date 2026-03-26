@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { integer, sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
+import { real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // ============================================================
 // albums テーブル
