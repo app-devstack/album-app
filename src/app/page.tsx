@@ -1,17 +1,27 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  useAlbums,
+  useCreateAlbum,
+  useUpdateAlbum,
+  useDeleteAlbum,
+} from '@/hooks/use-albums';
 import { Header } from '@/components/header';
 import { AlbumGrid } from '@/components/album-grid';
 import { AlbumDetail } from '@/components/album-detail';
 import { CreateAlbumDialog } from '@/components/create-album-dialog';
-import { MOCK_ALBUMS, type Album, type AccentColor } from '@/lib/data';
+import { type AccentColor } from '@/lib/data';
+import { Album } from '@/db/schema';
 
 type View = { type: 'grid' } | { type: 'detail'; albumId: string };
 
 export default function Home() {
   const [accent, setAccent] = useState<AccentColor>('blue');
-  const [albums, setAlbums] = useState<Album[]>(MOCK_ALBUMS);
+  const { data: albums, isLoading, isError } = useAlbums();
+  const { mutateAsync: createAlbumMutation } = useCreateAlbum();
+  const { mutateAsync: updateAlbumMutation } = useUpdateAlbum();
+  const { mutateAsync: deleteAlbumMutation } = useDeleteAlbum();
   const [view, setView] = useState<View>({ type: 'grid' });
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -23,18 +33,19 @@ export default function Home() {
     setView({ type: 'grid' });
   };
 
-  const handleAlbumCreate = (newAlbum: Album) => {
-    setAlbums((prev) => [newAlbum, ...prev]);
-  };
-
-  const handleAlbumUpdate = (updated: Album) => {
-    setAlbums((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+  const handleAlbumUpdate = async (
+    updated: Partial<Album> & { id: string }
+  ) => {
+    await updateAlbumMutation(updated);
   };
 
   const activeAlbum =
-    view.type === 'detail'
+    view.type === 'detail' && albums
       ? (albums.find((a) => a.id === view.albumId) ?? null)
       : null;
+
+  if (isLoading) return <div>Loading albums...</div>;
+  if (isError) return <div>Error loading albums.</div>;
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,7 +61,7 @@ export default function Home() {
       >
         {view.type === 'grid' && (
           <AlbumGrid
-            albums={albums}
+            albums={albums || []}
             accent={accent}
             onAlbumClick={handleAlbumClick}
             onCreateClick={() => setCreateOpen(true)}
@@ -63,6 +74,9 @@ export default function Home() {
             accent={accent}
             onBack={handleBack}
             onAlbumUpdate={handleAlbumUpdate}
+            onAlbumDelete={async (id: string) => {
+              await deleteAlbumMutation(id);
+            }}
           />
         )}
       </div>
@@ -71,7 +85,6 @@ export default function Home() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         accent={accent}
-        onAlbumCreate={handleAlbumCreate}
       />
     </div>
   );
