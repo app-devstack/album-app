@@ -9,9 +9,20 @@ next.user-config.*
 
 # Environment variables
 .env*.local
+.env
+.dev.vars
+.secrets.json
 
 # Common ignores
 node_modules
 .next/
 .DS_Store
 /dist/
+
+# wrangler
+.wrangler
+
+# AI related
+.agents/
+.augment/
+.prompts/
