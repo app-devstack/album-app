@@ -1,10 +1,10 @@
 'use client';
 
-import { Users, User, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Album } from '@/db/schema';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { Album } from '@/db/schema';
+import { MapPin, User, Users } from 'lucide-react';
 
 interface AlbumCardProps {
   album: Album;
@@ -47,7 +47,7 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
           ) : (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-black/60 text-white backdrop-blur-sm">
               <User size={10} />
-              非公開
+              個人
             </span>
           )}
         </div>

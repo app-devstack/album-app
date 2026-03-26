@@ -197,7 +197,7 @@ export function AlbumDetail({
             )}
           >
             {album.type === 'family' ? <Users size={10} /> : <User size={10} />}
-            {album.type === 'family' ? '共有' : '非公開'}
+            {album.type === 'family' ? '共有' : '個人'}
           </span>
           <Button
             variant="ghost"
