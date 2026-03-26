@@ -1,44 +1,48 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  Users,
-  User,
-  Settings,
-  ImagePlus,
-  X,
-  Check,
-  Edit2,
-  MapPin,
-  CalendarDays,
-  PlayCircle,
-  Film,
-} from 'lucide-react';
+import { AlbumMemos } from '@/components/album-memos';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ACCENT_COLORS, COVER_OPTIONS, type AccentColor } from '@/lib/data';
+import { Input } from '@/components/ui/input';
 import { VideoPlayer } from '@/components/video-player';
-import { AlbumMemos } from '@/components/album-memos';
-import { cn } from '@/lib/utils';
-import { usePhotos, useCreatePhoto, useDeletePhoto } from '@/hooks/use-photos';
-import {
-  useMemos,
-  useCreateMemo,
-  useUpdateMemo,
-  useDeleteMemo,
-} from '@/hooks/use-memos';
 import { Album, Photo } from '@/db/schema';
+import {
+  useCreateMemo,
+  useDeleteMemo,
+  useMemos,
+  useUpdateMemo,
+} from '@/hooks/fetchers/use-memos';
+import {
+  useCreatePhoto,
+  useDeletePhoto,
+  usePhotos,
+} from '@/hooks/fetchers/use-photos';
+import { ACCENT_COLORS, COVER_OPTIONS, type AccentColor } from '@/lib/data';
+import { cn } from '@/lib/utils';
+import {
+  ArrowLeft,
+  CalendarDays,
+  Check,
+  Edit2,
+  Film,
+  ImagePlus,
+  MapPin,
+  PlayCircle,
+  Plus,
+  Settings,
+  Trash2,
+  User,
+  Users,
+  X,
+} from 'lucide-react';
+import { useRef, useState } from 'react';
 
 interface AlbumDetailProps {
   album: Album;

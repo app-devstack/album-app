@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { NewPhoto, Photo } from '@/db/schema';
 import { api } from '@/lib/api';
-import { Photo, NewPhoto } from '@/db/schema';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 
 // Query Keys
@@ -47,10 +47,10 @@ const createPhoto = async ({
     headers: { 'Content-Type': file.type },
   });
 
-  // 3. Save photo metadata to the database
+  // 3. Save photo metadata to the database (URL will be generated from R2 key on server)
   const res = await api.albums[':albumId'].photos.$post({
     param: { albumId },
-    json: { ...photoData, url: signedUrl.split('?')[0], r2Key: key }, // Store the base URL and R2 key
+    json: { ...photoData, url: '', r2Key: key },
   });
   if (!res.ok) {
     throw new Error('Failed to create photo');
@@ -59,7 +59,7 @@ const createPhoto = async ({
 };
 
 const deletePhoto = async (id: string): Promise<{ message: string }> => {
-  const res = await api.photos[':id'].$delete({ param: { id } });
+  const res = await api.albums[':id'].$delete({ param: { id } });
   if (!res.ok) {
     throw new Error('Failed to delete photo');
   }

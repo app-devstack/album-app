@@ -1,19 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { useCreateAlbum } from '@/hooks/use-albums';
-import { User, Users, Check, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useCreateAlbum } from '@/hooks/fetchers/use-albums';
 import { ACCENT_COLORS, COVER_OPTIONS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { ArrowLeft, ArrowRight, Check, User, Users } from 'lucide-react';
+import { useState } from 'react';
 import { v7 as uuidv7 } from 'uuid';
 
 interface CreateAlbumDialogProps {

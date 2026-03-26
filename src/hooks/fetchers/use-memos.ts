@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
 import { Memo } from '@/db/schema';
+import { api } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Query Keys
 export const memoKeys = {
@@ -10,7 +10,7 @@ export const memoKeys = {
 
 // Fetchers
 const getMemos = async (albumId: string): Promise<Memo[]> => {
-  const res = await api.albums[':albumId'].memos.$get({ param: { albumId } });
+  const res = await api.memos.album[':albumId'].$get({ param: { albumId } });
   if (!res.ok) {
     throw new Error('Failed to fetch memos');
   }
@@ -23,7 +23,7 @@ const createMemo = async (input: {
   mood?: string | null;
 }): Promise<Memo> => {
   const { albumId, ...memoData } = input;
-  const res = await api.albums[':albumId'].memos.$post({
+  const res = await api.memos.album[':albumId'].$post({
     param: { albumId },
     json: memoData,
   });

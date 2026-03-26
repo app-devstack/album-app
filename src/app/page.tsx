@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { AlbumDetail } from '@/components/album-detail';
+import { AlbumGrid } from '@/components/album-grid';
+import { CreateAlbumDialog } from '@/components/create-album-dialog';
+import { Header } from '@/components/header';
+import { Album } from '@/db/schema';
 import {
   useAlbums,
   useCreateAlbum,
-  useUpdateAlbum,
   useDeleteAlbum,
-} from '@/hooks/use-albums';
-import { Header } from '@/components/header';
-import { AlbumGrid } from '@/components/album-grid';
-import { AlbumDetail } from '@/components/album-detail';
-import { CreateAlbumDialog } from '@/components/create-album-dialog';
+  useUpdateAlbum,
+} from '@/hooks/fetchers/use-albums';
 import { type AccentColor } from '@/lib/data';
-import { Album } from '@/db/schema';
+import { useState } from 'react';
 
 type View = { type: 'grid' } | { type: 'detail'; albumId: string };
 
