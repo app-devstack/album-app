@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Check, X, NotebookPen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { type Memo, type AccentColorConfig } from '@/lib/data';
+import { type Memo, type Album } from '@/db/schema';
+import { type AccentColorConfig } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
-// ムードタグの選択肢
 const MOOD_OPTIONS = [
   { label: '感動', color: 'bg-rose-100 text-rose-700' },
   { label: '幸福', color: 'bg-amber-100 text-amber-700' },
@@ -28,45 +28,44 @@ function formatMemoDate(iso: string) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-// ---- MemoCard ----
-
 interface MemoCardProps {
   memo: Memo;
   accentConfig: AccentColorConfig;
-  onUpdate: (updated: Memo) => void;
-  onDelete: (id: string) => void;
+  onUpdate: (updated: Partial<Memo> & { id: string }) => Promise<Memo>;
+  onDelete: (id: string) => Promise<{ message: string }>;
 }
 
 function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
   const [editing, setEditing] = useState(false);
   const [draftBody, setDraftBody] = useState(memo.body);
-  const [draftMood, setDraftMood] = useState<string | undefined>(memo.mood);
+  const [draftMood, setDraftMood] = useState<string | undefined>(
+    memo.mood ?? undefined
+  );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (editing && textareaRef.current) {
       textareaRef.current.focus();
-      // カーソルを末尾へ
       const len = textareaRef.current.value.length;
       textareaRef.current.setSelectionRange(len, len);
     }
   }, [editing]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!draftBody.trim()) return;
-    onUpdate({
-      ...memo,
+    await onUpdate({
+      id: memo.id,
       body: draftBody.trim(),
       mood: draftMood,
-      updatedAt: new Date().toISOString().split('T')[0],
     });
     setEditing(false);
   };
 
   const handleCancel = () => {
     setDraftBody(memo.body);
-    setDraftMood(memo.mood);
+    setDraftMood(memo.mood ?? undefined);
     setEditing(false);
   };
 
@@ -77,10 +76,8 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
         editing ? 'shadow-md' : 'hover:shadow-sm'
       )}
     >
-      {/* ヘッダー行 */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* ムードタグ */}
           {editing ? (
             <div className="flex items-center gap-1.5 flex-wrap">
               {MOOD_OPTIONS.map((m) => (
@@ -114,7 +111,6 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
           )}
         </div>
 
-        {/* 操作ボタン（非編集時はホバーで表示） */}
         {!editing && (
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             <button
@@ -127,11 +123,16 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
             {confirmDelete ? (
               <div className="flex items-center gap-0.5 ml-1">
                 <button
-                  onClick={() => onDelete(memo.id)}
+                  onClick={async () => {
+                    setIsDeleting(true);
+                    await onDelete(memo.id);
+                    setIsDeleting(false);
+                  }}
                   className="h-6 px-2 rounded-full text-[11px] font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
                   aria-label="削除を確定"
+                  disabled={isDeleting}
                 >
-                  削除
+                  {isDeleting ? '削除中...' : '削除'}
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
@@ -154,7 +155,6 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
         )}
       </div>
 
-      {/* 本文 */}
       {editing ? (
         <textarea
           ref={textareaRef}
@@ -174,7 +174,6 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
         </p>
       )}
 
-      {/* フッター */}
       {editing ? (
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-muted-foreground">
@@ -215,15 +214,23 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
   );
 }
 
-// ---- NewMemoForm ----
-
 interface NewMemoFormProps {
+  albumId: string;
   accentConfig: AccentColorConfig;
-  onAdd: (memo: Memo) => void;
+  createMemo: (memo: {
+    albumId: string;
+    body: string;
+    mood?: string;
+  }) => Promise<Memo>;
   onClose: () => void;
 }
 
-function NewMemoForm({ accentConfig, onAdd, onClose }: NewMemoFormProps) {
+function NewMemoForm({
+  albumId,
+  accentConfig,
+  createMemo,
+  onClose,
+}: NewMemoFormProps) {
   const [body, setBody] = useState('');
   const [mood, setMood] = useState<string | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -232,21 +239,18 @@ function NewMemoForm({ accentConfig, onAdd, onClose }: NewMemoFormProps) {
     textareaRef.current?.focus();
   }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!body.trim()) return;
-    const now = new Date().toISOString().split('T')[0];
-    onAdd({
-      id: `memo-${Date.now()}`,
+    await createMemo({
+      albumId,
       body: body.trim(),
       mood,
-      createdAt: now,
-      updatedAt: now,
     });
+    onClose();
   };
 
   return (
     <div className="rounded-2xl border-2 border-dashed border-border bg-card px-5 py-4 flex flex-col gap-3">
-      {/* ムード選択 */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[11px] text-muted-foreground mr-1">気分：</span>
         {MOOD_OPTIONS.map((m) => (
@@ -265,7 +269,6 @@ function NewMemoForm({ accentConfig, onAdd, onClose }: NewMemoFormProps) {
         ))}
       </div>
 
-      {/* テキスト入力 */}
       <textarea
         ref={textareaRef}
         value={body}
@@ -311,33 +314,31 @@ function NewMemoForm({ accentConfig, onAdd, onClose }: NewMemoFormProps) {
   );
 }
 
-// ---- AlbumMemos (main export) ----
-
 interface AlbumMemosProps {
+  album: Album;
   memos: Memo[];
   accentConfig: AccentColorConfig;
-  onChange: (updated: Memo[]) => void;
+  createMemo: (memo: {
+    albumId: string;
+    body: string;
+    mood?: string;
+  }) => Promise<Memo>;
+  updateMemo: (memo: Partial<Memo> & { id: string }) => Promise<Memo>;
+  deleteMemo: (id: string) => Promise<{ message: string }>;
 }
 
-export function AlbumMemos({ memos, accentConfig, onChange }: AlbumMemosProps) {
+export function AlbumMemos({
+  album,
+  memos,
+  accentConfig,
+  createMemo,
+  updateMemo,
+  deleteMemo,
+}: AlbumMemosProps) {
   const [adding, setAdding] = useState(false);
-
-  const handleAdd = (memo: Memo) => {
-    onChange([memo, ...memos]);
-    setAdding(false);
-  };
-
-  const handleUpdate = (updated: Memo) => {
-    onChange(memos.map((m) => (m.id === updated.id ? updated : m)));
-  };
-
-  const handleDelete = (id: string) => {
-    onChange(memos.filter((m) => m.id !== id));
-  };
 
   return (
     <section aria-label="旅のメモ">
-      {/* セクションヘッダー */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <NotebookPen size={15} className="text-muted-foreground" />
@@ -365,16 +366,15 @@ export function AlbumMemos({ memos, accentConfig, onChange }: AlbumMemosProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        {/* 新規入力フォーム */}
         {adding && (
           <NewMemoForm
+            albumId={album.id}
             accentConfig={accentConfig}
-            onAdd={handleAdd}
+            createMemo={createMemo}
             onClose={() => setAdding(false)}
           />
         )}
 
-        {/* 既存メモ一覧 */}
         {memos.length === 0 && !adding ? (
           <button
             onClick={() => setAdding(true)}
@@ -394,8 +394,8 @@ export function AlbumMemos({ memos, accentConfig, onChange }: AlbumMemosProps) {
               key={memo.id}
               memo={memo}
               accentConfig={accentConfig}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
+              onUpdate={updateMemo}
+              onDelete={deleteMemo}
             />
           ))
         )}

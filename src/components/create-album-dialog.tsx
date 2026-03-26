@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCreateAlbum } from '@/hooks/use-albums';
 import { User, Users, Check, ArrowLeft, ArrowRight } from 'lucide-react';
 import {
   Dialog,
@@ -11,19 +12,15 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  ACCENT_COLORS,
-  COVER_OPTIONS,
-  type AccentColor,
-  type Album,
-} from '@/lib/data';
+import { ACCENT_COLORS, COVER_OPTIONS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { v7 as uuidv7 } from 'uuid';
 
 interface CreateAlbumDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accent: AccentColor;
-  onAlbumCreate: (album: Album) => void;
+  // onAlbumCreate: (album: Album) => void; // No longer needed as we use the hook directly
 }
 
 type AlbumType = 'personal' | 'family';
@@ -32,8 +29,8 @@ export function CreateAlbumDialog({
   open,
   onOpenChange,
   accent,
-  onAlbumCreate,
 }: CreateAlbumDialogProps) {
+  const { mutateAsync: createAlbumMutation } = useCreateAlbum();
   const [step, setStep] = useState<1 | 2>(1);
   const [albumType, setAlbumType] = useState<AlbumType>('personal');
   const [albumName, setAlbumName] = useState('');
@@ -53,20 +50,18 @@ export function CreateAlbumDialog({
     }, 300);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const cover = COVER_OPTIONS.find((c) => c.id === selectedCover)!;
-    const newAlbum: Album = {
-      id: Date.now().toString(),
+    await createAlbumMutation({
+      id: uuidv7(),
       title: albumName.trim() || '無題のアルバム',
       type: albumType,
       coverUrl: cover.url,
       createdBy: '自分',
-      photoCount: 0,
+      // photoCount: 0,
       createdAt: new Date().toISOString().split('T')[0],
-      photos: [],
       ...(albumType === 'family' ? { memberName: '自分', sharedWith: [] } : {}),
-    };
-    onAlbumCreate(newAlbum);
+    });
     handleClose();
   };
 

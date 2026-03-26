@@ -2,8 +2,9 @@
 
 import { Plus } from 'lucide-react';
 import { AlbumCard } from '@/components/album-card';
-import { type Album, type AccentColor, ACCENT_COLORS } from '@/lib/data';
+import { type AccentColor, ACCENT_COLORS } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { Album } from '@/db/schema';
 
 interface AlbumGridProps {
   albums: Album[];

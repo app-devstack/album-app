@@ -2,8 +2,9 @@
 
 import { Users, User, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ACCENT_COLORS, type Album, type AccentColor } from '@/lib/data';
+import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { Album } from '@/db/schema';
 
 interface AlbumCardProps {
   album: Album;
@@ -69,7 +70,8 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
               <span className="text-[11px] text-muted-foreground/50">·</span>
             )}
             <span className="text-[11px] text-muted-foreground">
-              {album.photos.length}枚
+              {/* {album.photos.length}枚 */}
+              {0}枚
             </span>
           </div>
         </div>

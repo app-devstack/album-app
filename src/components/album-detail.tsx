@@ -27,23 +27,25 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  ACCENT_COLORS,
-  COVER_OPTIONS,
-  type Album,
-  type AccentColor,
-  type Photo,
-  type Memo,
-} from '@/lib/data';
+import { ACCENT_COLORS, COVER_OPTIONS, type AccentColor } from '@/lib/data';
 import { VideoPlayer } from '@/components/video-player';
 import { AlbumMemos } from '@/components/album-memos';
 import { cn } from '@/lib/utils';
+import { usePhotos, useCreatePhoto, useDeletePhoto } from '@/hooks/use-photos';
+import {
+  useMemos,
+  useCreateMemo,
+  useUpdateMemo,
+  useDeleteMemo,
+} from '@/hooks/use-memos';
+import { Album, Photo } from '@/db/schema';
 
 interface AlbumDetailProps {
   album: Album;
   accent: AccentColor;
   onBack: () => void;
-  onAlbumUpdate: (updated: Album) => void;
+  onAlbumUpdate: (updated: Partial<Album> & { id: string }) => Promise<void>;
+  onAlbumDelete: (id: string) => Promise<void>;
 }
 
 function formatDuration(secs: number): string {
@@ -57,9 +59,26 @@ export function AlbumDetail({
   accent,
   onBack,
   onAlbumUpdate,
+  onAlbumDelete,
 }: AlbumDetailProps) {
-  const [photos, setPhotos] = useState<Photo[]>(album.photos);
-  const [memos, setMemos] = useState<Memo[]>(album.memos ?? []);
+  const { data: photos = [], isLoading: isLoadingPhotos } = usePhotos(album.id);
+  const { mutateAsync: createPhotoMutation } = useCreatePhoto();
+  const { mutateAsync: deletePhotoMutation } = useDeletePhoto();
+
+  const { data: memos = [], isLoading: isLoadingMemos } = useMemos(album.id);
+  const { mutateAsync: createMemoMutation } = useCreateMemo();
+  const { mutateAsync: updateMemoMutation } = useUpdateMemo();
+  const { mutateAsync: deleteMemoMutation } = useDeleteMemo();
+
+  // Wrap createMemo to match component signature
+  const handleCreateMemo = async (memo: {
+    albumId: string;
+    body: string;
+    mood?: string;
+  }) => {
+    return createMemoMutation(memo);
+  };
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
   const [editTitle, setEditTitle] = useState(album.title);
@@ -69,37 +88,32 @@ export function AlbumDetail({
 
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
 
-  const handleDeletePhoto = (photoId: string) => {
-    const updated = photos.filter((p) => p.id !== photoId);
-    setPhotos(updated);
-    onAlbumUpdate({ ...album, photos: updated, photoCount: updated.length });
+  const handleDeletePhoto = async (photoId: string) => {
+    await deletePhotoMutation(photoId);
   };
 
-  const handleAddMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    const newItems: Photo[] = files.map((file) => {
+    if (!files.length) return;
+
+    for (const file of files) {
       const isVideo = file.type.startsWith('video/');
-      return {
-        id: `${Date.now()}-${Math.random()}`,
-        url: URL.createObjectURL(file),
+      await createPhotoMutation({
+        albumId: album.id,
+        file,
         alt: file.name.replace(/\.[^.]+$/, ''),
-        addedAt: new Date().toISOString().split('T')[0],
         mediaType: isVideo ? 'video' : 'image',
-      };
-    });
-    const updated = [...photos, ...newItems];
-    setPhotos(updated);
-    onAlbumUpdate({ ...album, photos: updated, photoCount: updated.length });
+        url: '', // Will be set by the server after upload
+      });
+    }
     e.target.value = '';
   };
 
-  const handleSaveSettings = () => {
-    onAlbumUpdate({
-      ...album,
+  const handleSaveSettings = async () => {
+    await onAlbumUpdate({
+      id: album.id,
       title: editTitle,
       coverUrl: editCover,
-      photos,
-      photoCount: photos.length,
     });
     setSettingsOpen(false);
   };
@@ -108,13 +122,12 @@ export function AlbumDetail({
     const d = new Date(iso);
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
   };
-
+  // const imageCount = album.photoCount;
+  const imageCount = 0;
   const videoCount = photos.filter((p) => p.mediaType === 'video').length;
-  const imageCount = photos.length - videoCount;
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-      {/* 戻るボタン + タイトルバー */}
       <div className="flex items-center gap-3 mb-6">
         <Button
           variant="ghost"
@@ -134,9 +147,9 @@ export function AlbumDetail({
                 onChange={(e) => setEditTitle(e.target.value)}
                 className="h-8 text-base font-sans font-medium py-0 px-2 w-56"
                 autoFocus
-                onKeyDown={(e) => {
+                onKeyDown={async (e) => {
                   if (e.key === 'Enter') {
-                    onAlbumUpdate({ ...album, title: editTitle });
+                    await onAlbumUpdate({ id: album.id, title: editTitle });
                     setEditingTitle(false);
                   }
                   if (e.key === 'Escape') setEditingTitle(false);
@@ -146,8 +159,8 @@ export function AlbumDetail({
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7"
-                onClick={() => {
-                  onAlbumUpdate({ ...album, title: editTitle });
+                onClick={async () => {
+                  await onAlbumUpdate({ id: album.id, title: editTitle });
                   setEditingTitle(false);
                 }}
                 aria-label="タイトルを保存"
@@ -195,7 +208,6 @@ export function AlbumDetail({
         </div>
       </div>
 
-      {/* ヒーローカバー */}
       <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden mb-6 bg-muted">
         <img
           src={album.coverUrl}
@@ -250,8 +262,9 @@ export function AlbumDetail({
         </div>
       </div>
 
-      {/* メディアグリッド */}
-      {photos.length === 0 ? (
+      {isLoadingPhotos ? (
+        <div>Loading photos...</div>
+      ) : photos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <ImagePlus size={22} className="text-muted-foreground" />
@@ -310,210 +323,154 @@ export function AlbumDetail({
                     crossOrigin="anonymous"
                   />
                 )}
-
+                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 {isVideo && (
-                  <>
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <div className="h-10 w-10 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                        <PlayCircle
-                          size={22}
-                          className="text-white"
-                          fill="white"
-                        />
-                      </div>
-                    </div>
-                    {item.duration && (
-                      <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-medium px-1.5 py-0.5 rounded tabular-nums">
-                        {formatDuration(item.duration)}
-                      </span>
-                    )}
-                  </>
-                )}
-
-                {!isVideo && item.caption && (
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-2.5 pb-2 pt-5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <p className="text-[11px] text-white leading-tight line-clamp-2">
-                      {item.caption}
-                    </p>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <PlayCircle
+                      size={40}
+                      className="text-white/80 drop-shadow-lg"
+                      strokeWidth={1.5}
+                    />
                   </div>
                 )}
-
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
-
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 z-10 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeletePhoto(item.id);
+                    if (confirm('この写真を削除してもよろしいですか？')) {
+                      handleDeletePhoto(item.id);
+                    }
                   }}
-                  className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                  aria-label={`削除: ${item.alt}`}
+                  aria-label="写真を削除"
                 >
-                  <Trash2 size={11} />
-                </button>
+                  <X size={16} />
+                </Button>
               </div>
             );
           })}
-
           <button
+            className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted hover:border-muted-foreground/50 transition-colors"
             onClick={() => fileInputRef.current?.click()}
-            className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground transition-colors"
-            aria-label="写真・動画を追加"
+            aria-label="メディアを追加"
           >
-            <Plus size={18} />
-            <span className="text-xs">追加</span>
+            <ImagePlus size={24} />
+            <span className="text-xs mt-2">追加</span>
           </button>
         </div>
       )}
 
-      {/* メモセクション */}
-      <div className="mt-10 pt-8 border-t border-border">
+      {isLoadingMemos ? (
+        <div>Loading memos...</div>
+      ) : (
         <AlbumMemos
-          memos={memos}
+          album={album}
           accentConfig={accentConfig}
-          onChange={(updated) => {
-            setMemos(updated);
-            onAlbumUpdate({ ...album, photos, memos: updated });
-          }}
+          memos={memos}
+          createMemo={handleCreateMemo}
+          updateMemo={updateMemoMutation}
+          deleteMemo={deleteMemoMutation}
         />
-      </div>
+      )}
 
-      {/* 隠しファイル入力 */}
       <input
-        ref={fileInputRef}
         type="file"
-        accept="image/*,video/*"
-        multiple
-        className="sr-only"
+        ref={fileInputRef}
         onChange={handleAddMedia}
-        aria-label="写真または動画をアップロード"
+        className="hidden"
+        multiple
+        accept="image/*,video/*"
       />
 
-      {/* ライトボックス */}
       {lightboxItem && (
-        <div
-          className="fixed inset-0 z-50 bg-black/93 flex flex-col items-center justify-center p-4 sm:p-8"
-          onClick={() => setLightboxItem(null)}
-          role="dialog"
-          aria-label={`${lightboxItem.mediaType === 'video' ? '動画' : '写真'}を表示中: ${lightboxItem.alt}`}
-          aria-modal="true"
-        >
-          <button
-            className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors z-10"
-            onClick={() => setLightboxItem(null)}
-            aria-label="閉じる"
-          >
-            <X size={16} />
-          </button>
-
-          <div
-            className="w-full max-w-3xl flex flex-col gap-3"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <Dialog open onOpenChange={() => setLightboxItem(null)}>
+          <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none">
             {lightboxItem.mediaType === 'video' ? (
-              <VideoPlayer
-                src={lightboxItem.url}
-                caption={lightboxItem.caption}
-                accentBg={accentConfig.bg}
-              />
+              <VideoPlayer src={lightboxItem.url} />
             ) : (
               <img
                 src={lightboxItem.url}
                 alt={lightboxItem.alt}
-                className="max-w-full max-h-[82vh] rounded-lg object-contain mx-auto block"
+                className="w-full h-auto object-contain rounded-lg"
                 crossOrigin="anonymous"
               />
             )}
-            {lightboxItem.caption && (
-              <p className="text-sm text-white/65 text-center leading-relaxed">
-                {lightboxItem.caption}
-              </p>
-            )}
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
-      {/* 設定ダイアログ */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-sans text-base font-medium">
-              アルバム設定
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+            <DialogTitle>アルバム設定</DialogTitle>
+            <DialogDescription>
               アルバムのタイトルとカバー写真を変更できます。
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4 mt-2">
-            <div>
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest block mb-1.5">
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="album-title" className="text-sm font-medium">
                 タイトル
               </label>
               <Input
+                id="album-title"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="アルバム名"
               />
             </div>
-            <div>
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest block mb-1.5">
-                カバー写真
-              </label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">カバー写真</label>
               <div className="grid grid-cols-3 gap-2">
-                {COVER_OPTIONS.map((cover) => {
-                  const isSelected = editCover === cover.url;
-                  return (
-                    <button
-                      key={cover.id}
-                      onClick={() => setEditCover(cover.url)}
-                      className={cn(
-                        'relative aspect-square rounded-lg overflow-hidden transition-all focus:outline-none',
-                        isSelected
-                          ? cn('ring-2 ring-offset-1', accentConfig.ring)
-                          : 'opacity-60 hover:opacity-100'
-                      )}
-                      aria-pressed={isSelected}
-                      aria-label={`カバーを選ぶ: ${cover.alt}`}
-                    >
-                      <img
-                        src={cover.url}
-                        alt={cover.alt}
-                        className="w-full h-full object-cover"
-                        crossOrigin="anonymous"
-                      />
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                          <Check
-                            size={14}
-                            className="text-white"
-                            strokeWidth={3}
-                          />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                {COVER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    className={cn(
+                      'aspect-video rounded-md overflow-hidden ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                      editCover === opt.url && `ring-2 ${accentConfig.ring}`
+                    )}
+                    onClick={() => setEditCover(opt.url)}
+                  >
+                    <img
+                      src={opt.url}
+                      alt={opt.alt}
+                      className="w-full h-full object-cover"
+                      crossOrigin="anonymous"
+                    />
+                  </button>
+                ))}
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-between items-center">
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
-              onClick={() => setSettingsOpen(false)}
+              onClick={async () => {
+                if (confirm('このアルバムを削除してもよろしいですか？')) {
+                  await onAlbumDelete(album.id);
+                  onBack();
+                }
+              }}
             >
-              キャンセル
+              <Trash2 size={14} className="mr-1.5" />
+              アルバムを削除
             </Button>
-            <Button
-              size="sm"
-              className={cn(
-                'text-white',
-                accentConfig.bg,
-                accentConfig.bgHover
-              )}
-              onClick={handleSaveSettings}
-            >
-              保存する
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setSettingsOpen(false)}>
+                キャンセル
+              </Button>
+              <Button
+                onClick={handleSaveSettings}
+                className={cn(
+                  'text-white',
+                  accentConfig.bg,
+                  accentConfig.bgHover
+                )}
+              >
+                保存
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
