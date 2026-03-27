@@ -13,6 +13,10 @@ import type { AppType } from '../app/api/[[...route]]/route';
 export type Bindings = {
   DB: D1Database;
   R2: R2Bucket;
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_URL: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
   CLOUDFLARE_ACCOUNT_ID: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
