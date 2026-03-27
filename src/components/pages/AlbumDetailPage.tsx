@@ -1,23 +1,21 @@
 'use client';
 
 import { AlbumDetail } from '@/components/album-detail';
-import { Header } from '@/components/header';
 import { type Album } from '@/db/schema';
 import {
   useAlbum,
   useDeleteAlbum,
   useUpdateAlbum,
 } from '@/hooks/fetchers/use-albums';
-import { type AccentColor } from '@/lib/data';
+import { useAccentStore } from '@/stores/themeStore';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
 
 export default function AlbumDetailPage() {
   const params = useParams();
   const router = useRouter();
   const albumId = params.albumId as string;
 
-  const [accent, setAccent] = useState<AccentColor>('blue');
+  const accent = useAccentStore((state) => state.accent);
   const { data: album, isLoading, isError } = useAlbum(albumId);
   const { mutateAsync: updateAlbumMutation } = useUpdateAlbum();
   const { mutateAsync: deleteAlbumMutation } = useDeleteAlbum();
@@ -43,8 +41,6 @@ export default function AlbumDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header accent={accent} onAccentChange={setAccent} />
-
       {album ? (
         <AlbumDetail
           album={album}

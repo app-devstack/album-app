@@ -1,9 +1,10 @@
 'use client';
 
 import { Check, Palette } from 'lucide-react';
-import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
+import { ACCENT_COLORS } from '@/lib/data';
 import { AppIcon } from '@/components/app-icon';
 import { cn } from '@/lib/utils';
+import { useAccentStore } from '@/stores/themeStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,12 +15,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
-interface HeaderProps {
-  accent: AccentColor;
-  onAccentChange: (color: AccentColor) => void;
-}
-
-export function Header({ accent, onAccentChange }: HeaderProps) {
+export function Header() {
+  const accent = useAccentStore((state) => state.accent);
+  const onAccentChange = useAccentStore((state) => state.setAccent);
   const currentAccent = ACCENT_COLORS.find((a) => a.id === accent)!;
 
   return (

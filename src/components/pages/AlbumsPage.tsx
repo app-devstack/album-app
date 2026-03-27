@@ -2,16 +2,15 @@
 
 import { AlbumGrid } from '@/components/album-grid';
 import { CreateAlbumDialog } from '@/components/create-album-dialog';
-import { Header } from '@/components/header';
 import { type Album } from '@/db/schema';
 import { useAlbums } from '@/hooks/fetchers/use-albums';
-import { type AccentColor } from '@/lib/data';
+import { useAccentStore } from '@/stores/themeStore';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function AlbumsPage() {
   const router = useRouter();
-  const [accent, setAccent] = useState<AccentColor>('blue');
+  const accent = useAccentStore((state) => state.accent);
   const { data: albums, isLoading, isError } = useAlbums();
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -24,8 +23,6 @@ export default function AlbumsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header accent={accent} onAccentChange={setAccent} />
-
       <AlbumGrid
         albums={albums || []}
         accent={accent}
