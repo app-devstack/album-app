@@ -8,6 +8,20 @@
       "when": 1774371229684,
       "tag": "0000_fixed_vin_gonzales",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1774590248529,
+      "tag": "0001_clumsy_forge",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774595057295,
+      "tag": "0002_brief_giant_girl",
+      "breakpoints": true
     }
   ]
 }
