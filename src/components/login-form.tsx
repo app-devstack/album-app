@@ -151,7 +151,7 @@ export function LoginForm() {
         <p className="mt-6 text-center text-xs text-login-muted font-sans">
           アカウントをお持ちでない方は{' '}
           <a
-            href="#"
+            href="/signup"
             className="text-login-accent hover:underline underline-offset-2 font-medium"
           >
             新規登録
