@@ -12,7 +12,9 @@
     "build:vinext": "vite build",
     "deploy:vinext": "npx vinext deploy",
     "type-check": "tsc --noEmit",
-    "secrets:upload": "sh scripts/upload-secrets.sh"
+    "secrets:upload": "sh scripts/upload-secrets.sh",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": " wrangler d1 migrations apply album-app-db"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1016.0",
