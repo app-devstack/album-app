@@ -1,10 +1,10 @@
 'use client';
 
-import { Plus } from 'lucide-react';
 import { AlbumCard } from '@/components/album-card';
+import { Album } from '@/db/schema';
 import { type AccentColor, ACCENT_COLORS } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { Album } from '@/db/schema';
+import { Plus } from 'lucide-react';
 
 interface AlbumGridProps {
   albums: Album[];
