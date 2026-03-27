@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { AppIcon } from '@/components/app-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -50,7 +50,6 @@ export function LoginForm() {
 
         {/* フォームカード */}
         <div className="bg-login-card border border-login-border rounded-2xl shadow-md px-7 py-8 flex flex-col gap-6">
-
           {/* Google ログイン */}
           <Button
             type="button"
@@ -76,12 +75,18 @@ export function LoginForm() {
           {/* 区切り線 */}
           <div className="flex items-center gap-3" role="separator">
             <div className="flex-1 h-px bg-login-border" />
-            <span className="text-xs text-login-muted font-sans tracking-wider select-none">または</span>
+            <span className="text-xs text-login-muted font-sans tracking-wider select-none">
+              または
+            </span>
             <div className="flex-1 h-px bg-login-border" />
           </div>
 
           {/* メールフォーム */}
-          <form onSubmit={handleEmailLogin} className="flex flex-col gap-4" noValidate>
+          <form
+            onSubmit={handleEmailLogin}
+            className="flex flex-col gap-4"
+            noValidate
+          >
             <div className="flex flex-col gap-1.5">
               <Label
                 htmlFor="email"
@@ -200,18 +205,21 @@ function GoogleIcon() {
 /** 桜の花びら背景装飾 */
 function PetalDecoration() {
   const petals = [
-    { top: '8%',  left: '7%',   size: 18, rotate: 20,  opacity: 0.18 },
-    { top: '14%', left: '88%',  size: 13, rotate: -15, opacity: 0.14 },
-    { top: '28%', left: '3%',   size: 10, rotate: 45,  opacity: 0.12 },
-    { top: '55%', left: '91%',  size: 16, rotate: 10,  opacity: 0.15 },
-    { top: '72%', left: '5%',   size: 12, rotate: -30, opacity: 0.13 },
-    { top: '82%', left: '82%',  size: 9,  rotate: 60,  opacity: 0.11 },
-    { top: '90%', left: '40%',  size: 14, rotate: -10, opacity: 0.10 },
-    { top: '4%',  left: '52%',  size: 8,  rotate: 35,  opacity: 0.09 },
+    { top: '8%', left: '7%', size: 18, rotate: 20, opacity: 0.18 },
+    { top: '14%', left: '88%', size: 13, rotate: -15, opacity: 0.14 },
+    { top: '28%', left: '3%', size: 10, rotate: 45, opacity: 0.12 },
+    { top: '55%', left: '91%', size: 16, rotate: 10, opacity: 0.15 },
+    { top: '72%', left: '5%', size: 12, rotate: -30, opacity: 0.13 },
+    { top: '82%', left: '82%', size: 9, rotate: 60, opacity: 0.11 },
+    { top: '90%', left: '40%', size: 14, rotate: -10, opacity: 0.1 },
+    { top: '4%', left: '52%', size: 8, rotate: 35, opacity: 0.09 },
   ];
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      aria-hidden="true"
+    >
       {petals.map((p, i) => (
         <svg
           key={i}

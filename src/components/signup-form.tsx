@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { AppIcon } from '@/components/app-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 export function SignupForm() {
   const [name, setName] = useState('');
@@ -20,9 +20,11 @@ export function SignupForm() {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = 'お名前を入力してください';
     if (!email.trim()) next.email = 'メールアドレスを入力してください';
-    else if (!/\S+@\S+\.\S+/.test(email)) next.email = 'メールアドレスの形式が正しくありません';
+    else if (!/\S+@\S+\.\S+/.test(email))
+      next.email = 'メールアドレスの形式が正しくありません';
     if (password.length < 8) next.password = '8文字以上で入力してください';
-    if (password !== passwordConfirm) next.passwordConfirm = 'パスワードが一致しません';
+    if (password !== passwordConfirm)
+      next.passwordConfirm = 'パスワードが一致しません';
     return next;
   };
 
@@ -69,7 +71,6 @@ export function SignupForm() {
 
         {/* フォームカード */}
         <div className="bg-login-card border border-login-border rounded-2xl shadow-md px-7 py-8 flex flex-col gap-6">
-
           {/* Google 登録 */}
           <Button
             type="button"
@@ -95,16 +96,24 @@ export function SignupForm() {
           {/* 区切り線 */}
           <div className="flex items-center gap-3" role="separator">
             <div className="flex-1 h-px bg-login-border" />
-            <span className="text-xs text-login-muted font-sans tracking-wider select-none">または</span>
+            <span className="text-xs text-login-muted font-sans tracking-wider select-none">
+              または
+            </span>
             <div className="flex-1 h-px bg-login-border" />
           </div>
 
           {/* 新規登録フォーム */}
-          <form onSubmit={handleSignup} className="flex flex-col gap-4" noValidate>
-
+          <form
+            onSubmit={handleSignup}
+            className="flex flex-col gap-4"
+            noValidate
+          >
             {/* お名前 */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name" className="text-xs font-medium text-login-label tracking-wide font-sans">
+              <Label
+                htmlFor="name"
+                className="text-xs font-medium text-login-label tracking-wide font-sans"
+              >
                 お名前
               </Label>
               <Input
@@ -120,11 +129,16 @@ export function SignupForm() {
                   'h-10 text-sm bg-login-input border-login-border',
                   'focus-visible:border-login-accent focus-visible:ring-login-accent/20',
                   'placeholder:text-login-placeholder',
-                  errors.name && 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
+                  errors.name &&
+                    'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
                 )}
               />
               {errors.name && (
-                <p id="name-error" className="text-xs text-red-500 font-sans" role="alert">
+                <p
+                  id="name-error"
+                  className="text-xs text-red-500 font-sans"
+                  role="alert"
+                >
                   {errors.name}
                 </p>
               )}
@@ -132,7 +146,10 @@ export function SignupForm() {
 
             {/* メールアドレス */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email" className="text-xs font-medium text-login-label tracking-wide font-sans">
+              <Label
+                htmlFor="email"
+                className="text-xs font-medium text-login-label tracking-wide font-sans"
+              >
                 メールアドレス
               </Label>
               <Input
@@ -148,11 +165,16 @@ export function SignupForm() {
                   'h-10 text-sm bg-login-input border-login-border',
                   'focus-visible:border-login-accent focus-visible:ring-login-accent/20',
                   'placeholder:text-login-placeholder',
-                  errors.email && 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
+                  errors.email &&
+                    'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
                 )}
               />
               {errors.email && (
-                <p id="email-error" className="text-xs text-red-500 font-sans" role="alert">
+                <p
+                  id="email-error"
+                  className="text-xs text-red-500 font-sans"
+                  role="alert"
+                >
                   {errors.email}
                 </p>
               )}
@@ -160,7 +182,10 @@ export function SignupForm() {
 
             {/* パスワード */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password" className="text-xs font-medium text-login-label tracking-wide font-sans">
+              <Label
+                htmlFor="password"
+                className="text-xs font-medium text-login-label tracking-wide font-sans"
+              >
                 パスワード
               </Label>
               <Input
@@ -171,20 +196,30 @@ export function SignupForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="new-password"
-                aria-describedby={errors.password ? 'password-error' : 'password-hint'}
+                aria-describedby={
+                  errors.password ? 'password-error' : 'password-hint'
+                }
                 className={cn(
                   'h-10 text-sm bg-login-input border-login-border',
                   'focus-visible:border-login-accent focus-visible:ring-login-accent/20',
                   'placeholder:text-login-placeholder',
-                  errors.password && 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
+                  errors.password &&
+                    'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
                 )}
               />
               {errors.password ? (
-                <p id="password-error" className="text-xs text-red-500 font-sans" role="alert">
+                <p
+                  id="password-error"
+                  className="text-xs text-red-500 font-sans"
+                  role="alert"
+                >
                   {errors.password}
                 </p>
               ) : (
-                <p id="password-hint" className="text-[11px] text-login-placeholder font-sans">
+                <p
+                  id="password-hint"
+                  className="text-[11px] text-login-placeholder font-sans"
+                >
                   半角英数字8文字以上
                 </p>
               )}
@@ -192,7 +227,10 @@ export function SignupForm() {
 
             {/* パスワード確認 */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="passwordConfirm" className="text-xs font-medium text-login-label tracking-wide font-sans">
+              <Label
+                htmlFor="passwordConfirm"
+                className="text-xs font-medium text-login-label tracking-wide font-sans"
+              >
                 パスワード（確認）
               </Label>
               <Input
@@ -203,16 +241,23 @@ export function SignupForm() {
                 onChange={(e) => setPasswordConfirm(e.target.value)}
                 required
                 autoComplete="new-password"
-                aria-describedby={errors.passwordConfirm ? 'passwordConfirm-error' : undefined}
+                aria-describedby={
+                  errors.passwordConfirm ? 'passwordConfirm-error' : undefined
+                }
                 className={cn(
                   'h-10 text-sm bg-login-input border-login-border',
                   'focus-visible:border-login-accent focus-visible:ring-login-accent/20',
                   'placeholder:text-login-placeholder',
-                  errors.passwordConfirm && 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
+                  errors.passwordConfirm &&
+                    'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-300/20'
                 )}
               />
               {errors.passwordConfirm && (
-                <p id="passwordConfirm-error" className="text-xs text-red-500 font-sans" role="alert">
+                <p
+                  id="passwordConfirm-error"
+                  className="text-xs text-red-500 font-sans"
+                  role="alert"
+                >
                   {errors.passwordConfirm}
                 </p>
               )}
@@ -221,11 +266,17 @@ export function SignupForm() {
             {/* 利用規約 */}
             <p className="text-[11px] text-login-muted font-sans leading-relaxed">
               登録することで
-              <button type="button" className="text-login-accent hover:underline underline-offset-2 mx-0.5">
+              <button
+                type="button"
+                className="text-login-accent hover:underline underline-offset-2 mx-0.5"
+              >
                 利用規約
               </button>
               および
-              <button type="button" className="text-login-accent hover:underline underline-offset-2 mx-0.5">
+              <button
+                type="button"
+                className="text-login-accent hover:underline underline-offset-2 mx-0.5"
+              >
                 プライバシーポリシー
               </button>
               に同意したものとみなします。
@@ -304,18 +355,21 @@ function GoogleIcon() {
 /** 桜の花びら背景装飾 */
 function PetalDecoration() {
   const petals = [
-    { top: '6%',  left: '10%',  size: 16, rotate: 15,  opacity: 0.16 },
-    { top: '12%', left: '85%',  size: 12, rotate: -20, opacity: 0.13 },
-    { top: '32%', left: '4%',   size: 9,  rotate: 50,  opacity: 0.11 },
-    { top: '50%', left: '92%',  size: 15, rotate: 8,   opacity: 0.14 },
-    { top: '68%', left: '6%',   size: 11, rotate: -25, opacity: 0.12 },
-    { top: '80%', left: '80%',  size: 8,  rotate: 65,  opacity: 0.10 },
-    { top: '92%', left: '38%',  size: 13, rotate: -8,  opacity: 0.09 },
-    { top: '3%',  left: '55%',  size: 7,  rotate: 40,  opacity: 0.08 },
+    { top: '6%', left: '10%', size: 16, rotate: 15, opacity: 0.16 },
+    { top: '12%', left: '85%', size: 12, rotate: -20, opacity: 0.13 },
+    { top: '32%', left: '4%', size: 9, rotate: 50, opacity: 0.11 },
+    { top: '50%', left: '92%', size: 15, rotate: 8, opacity: 0.14 },
+    { top: '68%', left: '6%', size: 11, rotate: -25, opacity: 0.12 },
+    { top: '80%', left: '80%', size: 8, rotate: 65, opacity: 0.1 },
+    { top: '92%', left: '38%', size: 13, rotate: -8, opacity: 0.09 },
+    { top: '3%', left: '55%', size: 7, rotate: 40, opacity: 0.08 },
   ];
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      aria-hidden="true"
+    >
       {petals.map((p, i) => (
         <svg
           key={i}
