@@ -4,10 +4,14 @@ import { AppIcon } from '@/components/app-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { signIn, signUp } from '@/lib/auth/auth-client';
+import { signupSchema } from '@/lib/auth/auth-validation';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export function SignupForm() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,35 +20,56 @@ export function SignupForm() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validate = () => {
-    const next: Record<string, string> = {};
-    if (!name.trim()) next.name = 'お名前を入力してください';
-    if (!email.trim()) next.email = 'メールアドレスを入力してください';
-    else if (!/\S+@\S+\.\S+/.test(email))
-      next.email = 'メールアドレスの形式が正しくありません';
-    if (password.length < 8) next.password = '8文字以上で入力してください';
-    if (password !== passwordConfirm)
-      next.passwordConfirm = 'パスワードが一致しません';
-    return next;
-  };
-
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setErrors(errs);
+    const parsed = signupSchema.safeParse({
+      name,
+      email,
+      password,
+      passwordConfirm,
+    });
+    if (!parsed.success) {
+      const nextErrors = parsed.error.flatten().fieldErrors;
+      setErrors({
+        name: nextErrors.name?.[0] ?? '',
+        email: nextErrors.email?.[0] ?? '',
+        password: nextErrors.password?.[0] ?? '',
+        passwordConfirm: nextErrors.passwordConfirm?.[0] ?? '',
+      });
       return;
     }
     setErrors({});
     setIsLoading(true);
-    // 認証処理を実装予定
-    setTimeout(() => setIsLoading(false), 1500);
+    try {
+      const result = await signUp.email({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+      if (result.error) {
+        return;
+      }
+      await signIn.email({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+      router.push('/');
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleSignup = () => {
+  const handleGoogleSignup = async () => {
     setGoogleLoading(true);
-    // Google 認証処理を実装予定
-    setTimeout(() => setGoogleLoading(false), 1500);
+    try {
+      await signIn.social({
+        provider: 'google',
+        callbackURL: '/',
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (

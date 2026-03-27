@@ -4,26 +4,52 @@ import { AppIcon } from '@/components/app-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { signIn } from '@/lib/auth/auth-client';
+import { loginSchema } from '@/lib/auth/auth-validation';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleEmailLogin = (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      return;
+    }
     setIsLoading(true);
-    // 認証処理を実装予定
-    setTimeout(() => setIsLoading(false), 1500);
+    try {
+      const result = await signIn.email({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+      if (result.error) {
+        console.error('Login error:', result.error);
+        return;
+      }
+      router.push('/');
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setGoogleLoading(true);
-    // Google 認証処理を実装予定
-    setTimeout(() => setGoogleLoading(false), 1500);
+    try {
+      await signIn.social({
+        provider: 'google',
+        callbackURL: '/',
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
