@@ -1,13 +1,13 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Album } from '@/db/schema';
+import { Album, Photo } from '@/db/schema';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { MapPin, User, Users } from 'lucide-react';
 
 interface AlbumCardProps {
-  album: Album;
+  album: Album & { latestPhoto?: Photo | null };
   accent: AccentColor;
   onClick: () => void;
 }
@@ -23,12 +23,14 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
     >
       {/* カバー画像 */}
       <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-muted">
-        <img
-          src={album.coverUrl}
-          alt={`${album.title}のカバー`}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          crossOrigin="anonymous"
-        />
+        {album.latestPhoto && (
+          <img
+            src={album.latestPhoto.thumbnailUrl || album.latestPhoto.url}
+            alt={`${album.title}のカバー`}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            crossOrigin="anonymous"
+          />
+        )}
         {/* グラデーションオーバーレイ */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 

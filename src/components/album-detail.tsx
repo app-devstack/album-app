@@ -24,7 +24,7 @@ import {
   useDeletePhoto,
   usePhotos,
 } from '@/hooks/fetchers/use-photos';
-import { ACCENT_COLORS, COVER_OPTIONS, type AccentColor } from '@/lib/data';
+import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -45,7 +45,7 @@ import {
 import { useRef, useState } from 'react';
 
 interface AlbumDetailProps {
-  album: Album;
+  album: Album & { latestPhoto?: Photo | null };
   accent: AccentColor;
   onBack: () => void;
   onAlbumUpdate: (updated: Partial<Album> & { id: string }) => Promise<void>;
@@ -86,7 +86,6 @@ export function AlbumDetail({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
   const [editTitle, setEditTitle] = useState(album.title);
-  const [editCover, setEditCover] = useState(album.coverUrl);
   const [editingTitle, setEditingTitle] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,11 +112,7 @@ export function AlbumDetail({
   };
 
   const handleSaveSettings = async () => {
-    await onAlbumUpdate({
-      id: album.id,
-      title: editTitle,
-      coverUrl: editCover,
-    });
+    await onAlbumUpdate({ id: album.id, title: editTitle });
     setSettingsOpen(false);
   };
 
@@ -126,7 +121,7 @@ export function AlbumDetail({
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
   };
   // const imageCount = album.photoCount;
-  const imageCount = 0;
+  const imageCount = photos.filter((p) => p.mediaType === 'image').length;
   const videoCount = photos.filter((p) => p.mediaType === 'video').length;
 
   return (
@@ -212,12 +207,14 @@ export function AlbumDetail({
       </div>
 
       <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden mb-6 bg-muted">
-        <img
-          src={album.coverUrl}
-          alt={`${album.title}のカバー`}
-          className="w-full h-full object-cover"
-          crossOrigin="anonymous"
-        />
+        {album.latestPhoto && (
+          <img
+            src={album.latestPhoto.thumbnailUrl || album.latestPhoto.url}
+            alt={`${album.title}のカバー`}
+            className="w-full h-full object-cover"
+            crossOrigin="anonymous"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <div className="absolute bottom-4 left-5 text-white flex flex-col gap-1">
           <div className="flex items-center gap-3 text-xs text-white/75">
@@ -422,28 +419,7 @@ export function AlbumDetail({
                 onChange={(e) => setEditTitle(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">カバー写真</label>
-              <div className="grid grid-cols-3 gap-2">
-                {COVER_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.id}
-                    className={cn(
-                      'aspect-video rounded-md overflow-hidden ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                      editCover === opt.url && `ring-2 ${accentConfig.ring}`
-                    )}
-                    onClick={() => setEditCover(opt.url)}
-                  >
-                    <img
-                      src={opt.url}
-                      alt={opt.alt}
-                      className="w-full h-full object-cover"
-                      crossOrigin="anonymous"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* カバー写真はアルバム内の最新写真を使用するため、プリセット選択は不要 */}
           </div>
           <div className="flex justify-between items-center">
             <Button

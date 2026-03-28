@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useCreateAlbum } from '@/hooks/fetchers/use-albums';
-import { ACCENT_COLORS, COVER_OPTIONS, type AccentColor } from '@/lib/data';
+import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, ArrowRight, Check, User, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -34,7 +34,6 @@ export function CreateAlbumDialog({
   const [step, setStep] = useState<1 | 2>(1);
   const [albumType, setAlbumType] = useState<AlbumType>('personal');
   const [albumName, setAlbumName] = useState('');
-  const [selectedCover, setSelectedCover] = useState(COVER_OPTIONS[0].id);
   const [selectedAccent, setSelectedAccent] = useState<AccentColor>(accent);
 
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
@@ -45,18 +44,16 @@ export function CreateAlbumDialog({
       setStep(1);
       setAlbumType('personal');
       setAlbumName('');
-      setSelectedCover(COVER_OPTIONS[0].id);
       setSelectedAccent(accent);
     }, 300);
   };
 
   const handleCreate = async () => {
-    const cover = COVER_OPTIONS.find((c) => c.id === selectedCover)!;
     await createAlbumMutation({
       id: uuidv7(),
       title: albumName.trim() || '無題のアルバム',
       type: albumType,
-      coverUrl: cover.url,
+      coverUrl: '',
       createdBy: '自分',
       // photoCount: 0,
       createdAt: new Date().toISOString().split('T')[0],
@@ -181,49 +178,7 @@ export function CreateAlbumDialog({
                 />
               </div>
 
-              {/* カバー写真の選択 */}
-              <div>
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest block mb-1.5">
-                  カバー写真
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {COVER_OPTIONS.map((cover) => {
-                    const isSelected = selectedCover === cover.id;
-                    return (
-                      <button
-                        key={cover.id}
-                        onClick={() => setSelectedCover(cover.id)}
-                        className={cn(
-                          'relative aspect-square rounded-lg overflow-hidden focus:outline-none transition-all',
-                          isSelected
-                            ? cn('ring-2 ring-offset-1', accentConfig.ring)
-                            : 'opacity-70 hover:opacity-100'
-                        )}
-                        aria-label={`カバーを選ぶ: ${cover.alt}`}
-                        aria-pressed={isSelected}
-                      >
-                        <img
-                          src={cover.url}
-                          alt={cover.alt}
-                          className="w-full h-full object-cover"
-                          crossOrigin="anonymous"
-                        />
-                        {isSelected && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <Check
-                              size={16}
-                              className="text-white"
-                              strokeWidth={3}
-                            />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* テーマカラー */}
+              {/* テーマカラー（アルバム作成時はグローバルaccentを選択） */}
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest block mb-1.5">
                   テーマカラー
