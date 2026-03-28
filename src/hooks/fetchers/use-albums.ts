@@ -10,7 +10,7 @@ export const albumKeys = {
 };
 
 // Fetchers
-const getAlbums = async (): Promise<Album[]> => {
+const getAlbums = async () => {
   const res = await api.albums.$get();
   if (!res.ok) {
     throw new Error('Failed to fetch albums');
@@ -18,7 +18,7 @@ const getAlbums = async (): Promise<Album[]> => {
   return res.json();
 };
 
-const getAlbum = async (id: string): Promise<Album> => {
+const getAlbum = async (id: string) => {
   const res = await api.albums[':id'].$get({ param: { id } });
   if (!res.ok) {
     throw new Error('Failed to fetch album');
@@ -26,7 +26,7 @@ const getAlbum = async (id: string): Promise<Album> => {
   return res.json();
 };
 
-const createAlbum = async (newAlbum: NewAlbum): Promise<Album> => {
+const createAlbum = async (newAlbum: NewAlbum) => {
   const res = await api.albums.$post({ json: newAlbum });
   if (!res.ok) {
     throw new Error('Failed to create album');
@@ -37,7 +37,7 @@ const createAlbum = async (newAlbum: NewAlbum): Promise<Album> => {
 const updateAlbum = async ({
   id,
   ...albumData
-}: Partial<Album> & { id: string }): Promise<Album> => {
+}: Partial<Album> & { id: string }) => {
   const res = await api.albums[':id'].$put({ param: { id }, json: albumData });
   if (!res.ok) {
     throw new Error('Failed to update album');
