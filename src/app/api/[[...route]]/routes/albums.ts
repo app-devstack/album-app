@@ -1,8 +1,8 @@
 import db from '@/db';
-import { albums } from '@/db/schema';
+import { albums, photos } from '@/db/schema';
 import { createApp } from '@/lib/api';
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
+import { desc, eq, isNotNull, or } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
@@ -10,7 +10,6 @@ import { z } from 'zod';
 const createAlbumSchema = z.object({
   title: z.string().min(1, 'タイトルは必須です'),
   type: z.enum(['personal', 'family']).default('personal'),
-  coverUrl: z.string().default(''),
   createdBy: z.string().default('自分'),
   memberName: z.string().nullable().optional(),
   memberAvatar: z.string().nullable().optional(),
@@ -21,34 +20,77 @@ const createAlbumSchema = z.object({
 const updateAlbumSchema = z.object({
   title: z.string().min(1).optional(),
   type: z.enum(['personal', 'family']).optional(),
-  coverUrl: z.string().optional(),
   memberName: z.string().nullable().optional(),
   memberAvatar: z.string().nullable().optional(),
   sharedWith: z.array(z.string()).nullable().optional(),
   location: z.string().nullable().optional(),
 });
 
+/**
+ * 全アルバムを、表示可能な最新写真（画像 or サムネイルあり動画）付きで取得する
+ */
+async function getAlbumsWithLatestPhoto() {
+  return await db.query.albums.findMany({
+    with: {
+      photos: {
+        where: or(
+          eq(photos.mediaType, 'image'),
+          isNotNull(photos.thumbnailUrl)
+        ),
+        orderBy: desc(photos.addedAt),
+        limit: 1,
+      },
+    },
+  });
+}
+
+/**
+ * 指定アルバムを、表示可能な最新写真（画像 or サムネイルあり動画）付きで取得する
+ */
+async function getAlbumWithLatestPhoto(id: string) {
+  return await db.query.albums.findFirst({
+    where: eq(albums.id, id),
+    with: {
+      photos: {
+        where: or(
+          eq(photos.mediaType, 'image'),
+          isNotNull(photos.thumbnailUrl)
+        ),
+        orderBy: desc(photos.addedAt),
+        limit: 1,
+      },
+    },
+  });
+}
+
 // Albums Router
 const router = createApp();
 
 export const albumsRouter = router
   .get('/', async (c) => {
-    const allAlbums = await db.select().from(albums).all();
-    return c.json(allAlbums);
+    const albumsWithLatest = await getAlbumsWithLatestPhoto();
+    return c.json(
+      albumsWithLatest.map(({ photos, ...alb }) => ({
+        ...alb,
+        latestPhoto: photos[0] ?? null,
+      }))
+    );
   })
   .get('/:id', async (c) => {
     const id = c.req.param('id');
-    const album = await db.select().from(albums).where(eq(albums.id, id)).get();
-    if (!album) {
+    const result = await getAlbumWithLatestPhoto(id);
+    if (!result) {
       return c.json({ message: 'Album not found' }, 404);
     }
-    return c.json(album);
+    const { photos: ph, ...alb } = result;
+    return c.json({ ...alb, latestPhoto: ph[0] ?? null });
   })
   .post('/', zValidator('json', createAlbumSchema), async (c) => {
     const body = c.req.valid('json');
     const newAlbum = {
       ...body,
       id: uuidv7(),
+      coverUrl: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -58,17 +100,23 @@ export const albumsRouter = router
   .put('/:id', zValidator('json', updateAlbumSchema), async (c) => {
     const id = c.req.param('id');
     const body = c.req.valid('json');
-    const updatedAlbum = {
-      ...body,
-      updatedAt: new Date().toISOString(),
-    };
-    await db.update(albums).set(updatedAlbum).where(eq(albums.id, id)).run();
     const result = await db
-      .select()
-      .from(albums)
+      .update(albums)
+      .set({ ...body, updatedAt: new Date().toISOString() })
       .where(eq(albums.id, id))
-      .get();
-    return c.json(result);
+      .run();
+
+    const isUpdated = result.success;
+
+    if (!isUpdated) {
+      return c.json({ message: 'Album not found or update failed' }, 404);
+    }
+
+    const album = await getAlbumWithLatestPhoto(id);
+
+    const { photos: _, ...alb } = album!;
+    const latestPhoto = album?.photos[0] ?? null;
+    return c.json({ ...alb, latestPhoto });
   })
   .delete('/:id', async (c) => {
     const id = c.req.param('id');
