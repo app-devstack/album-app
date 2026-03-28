@@ -1,7 +1,6 @@
 'use client';
 
 import { AlbumMemos } from '@/components/album-memos';
-import { UploadProgressCell } from '@/components/upload-progress-cell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +48,6 @@ interface UploadingItem {
   /** ローカルで識別するための仮ID */
   tempId: string;
   fileName: string;
-  progress: number;
 }
 
 interface AlbumDetailProps {
@@ -112,25 +110,7 @@ export function AlbumDetail({
       const isVideo = file.type.startsWith('video/');
       const tempId = `${Date.now()}-${file.name}`;
 
-      // アップロード中アイテムを追加（進捗0%）
-      setUploadingItems((prev) => [
-        ...prev,
-        { tempId, fileName: file.name, progress: 0 },
-      ]);
-
-      // 擬似的な進捗アニメーション（実際のaxiosのonUploadProgressと合わせる場合はそちらを使う）
-      let simulatedProgress = 0;
-      const progressInterval = setInterval(() => {
-        simulatedProgress = Math.min(simulatedProgress + Math.random() * 18 + 5, 90);
-        setUploadingItems((prev) =>
-          prev.map((item) =>
-            item.tempId === tempId
-              ? { ...item, progress: Math.round(simulatedProgress) }
-              : item
-          )
-        );
-        if (simulatedProgress >= 90) clearInterval(progressInterval);
-      }, 200);
+      setUploadingItems((prev) => [...prev, { tempId, fileName: file.name }]);
 
       try {
         await createPhotoMutation({
@@ -139,21 +119,10 @@ export function AlbumDetail({
           alt: file.name.replace(/\.[^.]+$/, ''),
           mediaType: isVideo ? 'video' : 'image',
         });
-        // 完了表示
-        clearInterval(progressInterval);
         setUploadingItems((prev) =>
-          prev.map((item) =>
-            item.tempId === tempId ? { ...item, progress: 100 } : item
-          )
+          prev.filter((item) => item.tempId !== tempId)
         );
-        // 少し待ってからリストを消す
-        setTimeout(() => {
-          setUploadingItems((prev) =>
-            prev.filter((item) => item.tempId !== tempId)
-          );
-        }, 900);
       } catch {
-        clearInterval(progressInterval);
         setUploadingItems((prev) =>
           prev.filter((item) => item.tempId !== tempId)
         );
@@ -340,84 +309,94 @@ export function AlbumDetail({
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-          {photos.map((item) => {
-            const isVideo = item.mediaType === 'video';
-            return (
-              <div
-                key={item.id}
-                className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer"
-                onClick={() => setLightboxItem(item)}
-                role="button"
-                tabIndex={0}
-                aria-label={`${isVideo ? '動画' : '写真'}を開く: ${item.alt}`}
-                onKeyDown={(e) => e.key === 'Enter' && setLightboxItem(item)}
-              >
-                {isVideo ? (
-                  item.thumbnailUrl ? (
+        <div className="relative">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+            {photos.map((item) => {
+              const isVideo = item.mediaType === 'video';
+              return (
+                <div
+                  key={item.id}
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer"
+                  onClick={() => setLightboxItem(item)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${isVideo ? '動画' : '写真'}を開く: ${item.alt}`}
+                  onKeyDown={(e) => e.key === 'Enter' && setLightboxItem(item)}
+                >
+                  {isVideo ? (
+                    item.thumbnailUrl ? (
+                      <img
+                        src={item.thumbnailUrl}
+                        alt={item.alt}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        crossOrigin="anonymous"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
+                        <Film size={32} className="text-muted-foreground" />
+                      </div>
+                    )
+                  ) : (
                     <img
-                      src={item.thumbnailUrl}
+                      src={item.url}
                       alt={item.alt}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       crossOrigin="anonymous"
                     />
-                  ) : (
-                    <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
-                      <Film size={32} className="text-muted-foreground" />
+                  )}
+                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {isVideo && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <PlayCircle
+                        size={40}
+                        className="text-white/80 drop-shadow-lg"
+                        strokeWidth={1.5}
+                      />
                     </div>
-                  )
-                ) : (
-                  <img
-                    src={item.url}
-                    alt={item.alt}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    crossOrigin="anonymous"
-                  />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('この写真を削除してもよろしいですか？')) {
+                        handleDeletePhoto(item.id);
+                      }
+                    }}
+                    aria-label="写真を削除"
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+              );
+            })}
+            <button
+              className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted hover:border-muted-foreground/50 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="メディアを追加"
+            >
+              <ImagePlus size={24} />
+              <span className="text-xs mt-2">追加</span>
+            </button>
+          </div>
+          {uploadingItems.length > 0 && (
+            <div
+              className="absolute inset-0 rounded-xl bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-10"
+              aria-live="polite"
+              aria-label="アップロード中"
+            >
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-full animate-spin border-4 border-muted border-t-current',
+                  accentConfig.text
                 )}
-                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                {isVideo && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <PlayCircle
-                      size={40}
-                      className="text-white/80 drop-shadow-lg"
-                      strokeWidth={1.5}
-                    />
-                  </div>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 z-10 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('この写真を削除してもよろしいですか？')) {
-                      handleDeletePhoto(item.id);
-                    }
-                  }}
-                  aria-label="写真を削除"
-                >
-                  <X size={16} />
-                </Button>
-              </div>
-            );
-          })}
-          {/* アップロード中のセル */}
-          {uploadingItems.map((item) => (
-            <UploadProgressCell
-              key={item.tempId}
-              progress={item.progress}
-              accentBg={accentConfig.bg}
-              accentText={accentConfig.text}
-            />
-          ))}
-          <button
-            className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted hover:border-muted-foreground/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="メディアを追加"
-          >
-            <ImagePlus size={24} />
-            <span className="text-xs mt-2">追加</span>
-          </button>
+              />
+              <p className={cn('text-sm font-medium', accentConfig.text)}>
+                アップロード中… ({uploadingItems.length}件)
+              </p>
+            </div>
+          )}
         </div>
       )}
 
