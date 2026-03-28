@@ -61,7 +61,7 @@ const createPhoto = async ({
 };
 
 const deletePhoto = async (id: string): Promise<{ message: string }> => {
-  const res = await api.albums[':id'].$delete({ param: { id } });
+  const res = await api.photos[':id'].$delete({ param: { id } });
   if (!res.ok) {
     throw new Error('Failed to delete photo');
   }
