@@ -1,6 +1,7 @@
 'use client';
 
 import { AlbumMemos } from '@/components/album-memos';
+import { UploadProgressCell } from '@/components/upload-progress-cell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +44,13 @@ import {
   X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
+
+interface UploadingItem {
+  /** ローカルで識別するための仮ID */
+  tempId: string;
+  fileName: string;
+  progress: number;
+}
 
 interface AlbumDetailProps {
   album: Album & { latestPhoto?: Photo | null };
@@ -87,6 +95,7 @@ export function AlbumDetail({
   const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
   const [editTitle, setEditTitle] = useState(album.title);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
@@ -101,12 +110,54 @@ export function AlbumDetail({
 
     for (const file of files) {
       const isVideo = file.type.startsWith('video/');
-      await createPhotoMutation({
-        albumId: album.id,
-        file,
-        alt: file.name.replace(/\.[^.]+$/, ''),
-        mediaType: isVideo ? 'video' : 'image',
-      });
+      const tempId = `${Date.now()}-${file.name}`;
+
+      // アップロード中アイテムを追加（進捗0%）
+      setUploadingItems((prev) => [
+        ...prev,
+        { tempId, fileName: file.name, progress: 0 },
+      ]);
+
+      // 擬似的な進捗アニメーション（実際のaxiosのonUploadProgressと合わせる場合はそちらを使う）
+      let simulatedProgress = 0;
+      const progressInterval = setInterval(() => {
+        simulatedProgress = Math.min(simulatedProgress + Math.random() * 18 + 5, 90);
+        setUploadingItems((prev) =>
+          prev.map((item) =>
+            item.tempId === tempId
+              ? { ...item, progress: Math.round(simulatedProgress) }
+              : item
+          )
+        );
+        if (simulatedProgress >= 90) clearInterval(progressInterval);
+      }, 200);
+
+      try {
+        await createPhotoMutation({
+          albumId: album.id,
+          file,
+          alt: file.name.replace(/\.[^.]+$/, ''),
+          mediaType: isVideo ? 'video' : 'image',
+        });
+        // 完了表示
+        clearInterval(progressInterval);
+        setUploadingItems((prev) =>
+          prev.map((item) =>
+            item.tempId === tempId ? { ...item, progress: 100 } : item
+          )
+        );
+        // 少し待ってからリストを消す
+        setTimeout(() => {
+          setUploadingItems((prev) =>
+            prev.filter((item) => item.tempId !== tempId)
+          );
+        }, 900);
+      } catch {
+        clearInterval(progressInterval);
+        setUploadingItems((prev) =>
+          prev.filter((item) => item.tempId !== tempId)
+        );
+      }
     }
     e.target.value = '';
   };
@@ -264,7 +315,7 @@ export function AlbumDetail({
 
       {isLoadingPhotos ? (
         <div>Loading photos...</div>
-      ) : photos.length === 0 ? (
+      ) : photos.length === 0 && uploadingItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <ImagePlus size={22} className="text-muted-foreground" />
@@ -350,6 +401,15 @@ export function AlbumDetail({
               </div>
             );
           })}
+          {/* アップロード中のセル */}
+          {uploadingItems.map((item) => (
+            <UploadProgressCell
+              key={item.tempId}
+              progress={item.progress}
+              accentBg={accentConfig.bg}
+              accentText={accentConfig.text}
+            />
+          ))}
           <button
             className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted hover:border-muted-foreground/50 transition-colors"
             onClick={() => fileInputRef.current?.click()}
