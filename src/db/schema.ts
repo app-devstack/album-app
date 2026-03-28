@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // ============================================================
@@ -121,6 +121,17 @@ export const memos = sqliteTable('memos', {
     .notNull()
     .default(sql`(date('now'))`),
 });
+
+export const albumsRelations = relations(albums, ({ many }) => ({
+  photos: many(photos),
+}));
+
+export const photosRelations = relations(photos, ({ one }) => ({
+  album: one(albums, {
+    fields: [photos.albumId],
+    references: [albums.id],
+  }),
+}));
 
 // ============================================================
 // Type exports
