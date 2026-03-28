@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_JP, Noto_Serif_JP } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
-import { Providers } from "@/components/providers";
+import { Providers } from "@/components/layout/providers";
 import './globals.css';
 import { cn } from '@/lib/utils';
 

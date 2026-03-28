@@ -1,6 +1,6 @@
 'use client';
 
-import { AlbumDetail } from '@/components/album-detail';
+import { AlbumDetail } from '@/components/album/album-detail';
 import { type Album } from '@/db/schema';
 import {
   useAlbum,

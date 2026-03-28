@@ -2,7 +2,7 @@
 
 import { Check, Palette } from 'lucide-react';
 import { ACCENT_COLORS } from '@/lib/data';
-import { AppIcon } from '@/components/app-icon';
+import { AppIcon } from '@/components/layout/app-icon';
 import { cn } from '@/lib/utils';
 import { useAccentStore } from '@/stores/themeStore';
 import {

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlbumCard } from '@/components/album-card';
+import { AlbumCard } from '@/components/album/album-card';
 import { Album } from '@/db/schema';
 import { type AccentColor, ACCENT_COLORS } from '@/lib/data';
 import { cn } from '@/lib/utils';

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlbumMemos } from '@/components/album-memos';
+import { AlbumMemos } from '@/components/album/album-memos';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { VideoPlayer } from '@/components/video-player';
+import { VideoPlayer } from '@/components/layout/video-player';
 import { Album, Photo } from '@/db/schema';
 import {
   useCreateMemo,
