@@ -1,12 +1,4 @@
 import { User } from '@/db/schema';
-import { MOCK_AUTH_USERS } from '@/mocks/user';
-
-/**
- * メールアドレスに一致するユーザをモックデータから取得します。
- */
-export const getMockUserByEmail = (email: string): User | null => {
-  return MOCK_AUTH_USERS.find((user) => user.email === email) ?? null;
-};
 
 /**
  * データベースからメールアドレス一致のユーザを取得

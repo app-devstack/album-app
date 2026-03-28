@@ -2,14 +2,17 @@ import type { User } from '@/db/schema';
 import { createApp } from '@/lib/api';
 import { auth } from '@/lib/auth/auth';
 import { authEmailSchema } from '@/lib/auth/auth-validation';
-import { getMockUserByEmail, getUserByEmail } from '@/lib/service/users';
+import { getUserByEmail } from '@/lib/service/users';
 import { zValidator } from '@hono/zod-validator';
 
 const getUser = async (email: string): Promise<User | null> => {
-  const dbUser = await getUserByEmail(email);
-  if (dbUser) return dbUser;
-
-  return getMockUserByEmail(email);
+  try {
+    const dbUser = await getUserByEmail(email);
+    return dbUser;
+  } catch (error) {
+    console.error('Error fetching user by email:', error);
+    return null;
+  }
 };
 
 const router = createApp();
