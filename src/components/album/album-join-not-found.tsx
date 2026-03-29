@@ -1,10 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { LinkOff, ImageIcon, Home, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
+import { cn } from '@/lib/utils';
+import { Copy, Home, ImageIcon, Link2Off } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface AlbumJoinNotFoundProps {
   accent: AccentColor;
@@ -39,7 +39,7 @@ export function AlbumJoinNotFound({ accent, token }: AlbumJoinNotFoundProps) {
           {/* Illustration band */}
           <div className="h-36 bg-muted/40 flex flex-col items-center justify-center gap-2">
             <div className="h-14 w-14 rounded-full flex items-center justify-center bg-background shadow-sm border border-border">
-              <LinkOff size={26} strokeWidth={1.75} className="text-muted-foreground" />
+              <Link2Off size={26} strokeWidth={1.75} className="text-muted-foreground" />
             </div>
           </div>
 
