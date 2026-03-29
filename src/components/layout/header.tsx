@@ -1,10 +1,7 @@
 'use client';
 
-import { Check, Palette } from 'lucide-react';
-import { ACCENT_COLORS } from '@/lib/data';
 import { AppIcon } from '@/components/layout/app-icon';
-import { cn } from '@/lib/utils';
-import { useAccentStore } from '@/stores/themeStore';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,12 +10,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { signOut } from '@/lib/auth/auth-client';
+import { ACCENT_COLORS } from '@/lib/data';
+import { cn } from '@/lib/utils';
+import { useAccentStore } from '@/stores/themeStore';
+import { Check, LogOut, Palette } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-export function Header() {
+interface HeaderUser {
+  name: string;
+  email: string;
+  image?: string | null;
+}
+
+export function Header({ user }: { user: HeaderUser }) {
+  const router = useRouter();
   const accent = useAccentStore((state) => state.accent);
   const onAccentChange = useAccentStore((state) => state.setAccent);
   const currentAccent = ACCENT_COLORS.find((a) => a.id === accent)!;
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
+
+  const initial = user.name?.charAt(0)?.toUpperCase() ?? '?';
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
@@ -77,13 +93,43 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* ユーザーアバター */}
-          <div
-            className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-medium text-muted-foreground border border-border select-none"
-            aria-label="マイアカウント"
-          >
-            私
-          </div>
+          {/* ユーザーアバター + ログアウト */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-medium text-muted-foreground border border-border select-none hover:bg-accent transition-colors overflow-hidden"
+                aria-label="マイアカウント"
+              >
+                {user.image ? (
+                  <img
+                    src={user.image}
+                    alt={user.name}
+                    className="h-7 w-7 object-cover"
+                  />
+                ) : (
+                  initial
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-xs font-normal py-1.5">
+                <div className="font-medium text-foreground truncate">
+                  {user.name}
+                </div>
+                <div className="text-muted-foreground truncate">
+                  {user.email}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={handleSignOut}
+                className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut size={14} />
+                <span>ログアウト</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

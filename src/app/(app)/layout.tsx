@@ -1,13 +1,24 @@
 import { Header } from '@/components/layout/header';
+import { auth } from '@/lib/auth/auth';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    redirect('/login');
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header user={session.user} />
       {children}
     </div>
   );
