@@ -11,17 +11,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+import { AppIcon } from '@/components/layout/app-icon';
 import { cn } from '@/lib/utils';
-import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 
 interface AlbumJoinProps {
-  /** The invite token extracted from the URL */
   token: string;
-  accent: AccentColor;
 }
 
-/** Stable mock album info derived from the invite token */
 function deriveAlbumInfo(token: string) {
   const names = [
     '夏の思い出',
@@ -30,23 +26,20 @@ function deriveAlbumInfo(token: string) {
     '卒業アルバム',
     '年末パーティー',
   ];
-  const locations = ['東京', '京都', '大阪', '北海道', '沖縄'];
   const hosts = [
-    { name: '田中 さくら', avatar: '' },
-    { name: '山田 健太', avatar: '' },
-    { name: '鈴木 美咲', avatar: '' },
+    { name: '田中 さくら' },
+    { name: '山田 健太' },
+    { name: '鈴木 美咲' },
   ];
 
   const code = (n: number) => token.charCodeAt(n) || 0;
   const idx = code(0) % names.length;
-  const locIdx = code(1) % locations.length;
   const hostIdx = code(2) % hosts.length;
-  const photoCount = 12 + code(3) % 88;
-  const memberCount = 2 + code(4) % 6;
+  const photoCount = 12 + (code(3) % 88);
+  const memberCount = 2 + (code(4) % 6);
 
   return {
     title: names[idx],
-    location: locations[locIdx],
     host: hosts[hostIdx],
     photoCount,
     memberCount,
@@ -56,197 +49,150 @@ function deriveAlbumInfo(token: string) {
   };
 }
 
-// Dummy member avatars to show in the members row
 const DUMMY_MEMBERS = [
-  { name: '田中', avatar: '' },
-  { name: '山田', avatar: '' },
-  { name: '鈴木', avatar: '' },
-  { name: '佐藤', avatar: '' },
+  { name: '田中' },
+  { name: '山田' },
+  { name: '鈴木' },
+  { name: '佐藤' },
 ];
 
 type JoinState = 'idle' | 'loading' | 'joined';
 
-export function AlbumJoin({ token, accent }: AlbumJoinProps) {
+export function AlbumJoin({ token }: AlbumJoinProps) {
   const router = useRouter();
-  const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
   const album = deriveAlbumInfo(token);
   const [joinState, setJoinState] = useState<JoinState>('idle');
 
   const handleJoin = async () => {
     setJoinState('loading');
-    // Simulate network request
     await new Promise((res) => setTimeout(res, 1200));
     setJoinState('joined');
   };
 
   const handleGoToAlbum = () => {
-    // In a real app this would navigate to the album that was joined
     router.push('/');
   };
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm flex flex-col gap-0">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden bg-login-bg">
+      <PetalDecoration />
 
-        {/* ── App logo / wordmark ── */}
-        <div className="flex justify-center mb-8">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1.5 text-sm font-semibold tracking-widest uppercase',
-              accentConfig.text
-            )}
-          >
-            <ImageIcon size={15} strokeWidth={2} />
-            思い出帳
-          </span>
+      <div className="relative z-10 w-full max-w-sm">
+        {/* ロゴ・タイトル */}
+        <div className="flex flex-col items-center mb-8 gap-3">
+          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-login-card border border-login-border shadow-sm">
+            <AppIcon size={38} className="text-login-accent" />
+          </div>
+          <div className="text-center">
+            <h1 className="font-serif text-2xl font-medium tracking-widest text-login-fg">
+              思い出帳
+            </h1>
+            <p className="mt-1 text-xs font-sans text-login-muted tracking-wider">
+              大切な記憶を、いつでも一緒に。
+            </p>
+          </div>
         </div>
 
-        {/* ── Card ── */}
-        <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+        {/* カード */}
+        <div className="bg-login-card border border-login-border rounded-2xl shadow-md overflow-hidden">
 
-          {/* Cover image */}
-          <div className="relative h-44 bg-muted overflow-hidden">
+          {/* カバー画像 */}
+          <div className="relative h-44 overflow-hidden">
             <img
               src={album.coverUrl}
               alt={`${album.title}のカバー`}
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-
-            {/* Album title overlaid on cover */}
-            <div className="absolute bottom-4 left-4 right-4">
-              <h1 className="text-xl font-semibold text-white leading-tight text-balance drop-shadow-sm">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            <div className="absolute bottom-4 left-5 right-5">
+              <p className="text-[11px] text-white/70 font-sans mb-0.5">アルバムグループへの招待</p>
+              <h2 className="text-xl font-semibold text-white leading-tight text-balance drop-shadow-sm font-sans">
                 {album.title}
-              </h1>
+              </h2>
             </div>
           </div>
 
-          {/* Body */}
-          <div className="px-5 pt-5 pb-6 flex flex-col gap-5">
+          {/* ボディ */}
+          <div className="px-6 pt-5 pb-6 flex flex-col gap-5">
 
-            {/* Invitation headline */}
-            <div className="text-center space-y-1">
-              <p className="text-xs text-muted-foreground">招待メッセージ</p>
-              <p className="text-sm text-foreground leading-relaxed">
-                <span className="font-medium">{album.host.name}</span>
-                {'さんがあなたをこのアルバムグループに招待しました。'}
-              </p>
-            </div>
+            {/* 招待メッセージ */}
+            <p className="text-sm text-login-fg font-sans text-center leading-relaxed">
+              <span className="font-semibold">{album.host.name}</span>
+              {'さんがあなたをこのアルバムグループに招待しました。'}
+            </p>
 
-            <Separator />
+            <div className="h-px bg-login-border" />
 
-            {/* Album meta */}
+            {/* アルバム情報グリッド */}
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="flex flex-col items-center gap-1">
-                <div
-                  className={cn(
-                    'h-8 w-8 rounded-full flex items-center justify-center',
-                    accentConfig.bgLight
-                  )}
-                >
-                  <ImageIcon size={14} className={accentConfig.text} />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="h-9 w-9 rounded-full bg-login-bg flex items-center justify-center border border-login-border">
+                  <ImageIcon size={15} className="text-login-accent" />
                 </div>
-                <span className="text-sm font-semibold text-foreground tabular-nums">
+                <span className="text-sm font-semibold text-login-fg tabular-nums font-sans">
                   {album.photoCount}
                 </span>
-                <span className="text-[11px] text-muted-foreground">写真</span>
+                <span className="text-[11px] text-login-muted font-sans">写真</span>
               </div>
 
-              <div className="flex flex-col items-center gap-1">
-                <div
-                  className={cn(
-                    'h-8 w-8 rounded-full flex items-center justify-center',
-                    accentConfig.bgLight
-                  )}
-                >
-                  <Users size={14} className={accentConfig.text} />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="h-9 w-9 rounded-full bg-login-bg flex items-center justify-center border border-login-border">
+                  <Users size={15} className="text-login-accent" />
                 </div>
-                <span className="text-sm font-semibold text-foreground tabular-nums">
+                <span className="text-sm font-semibold text-login-fg tabular-nums font-sans">
                   {album.memberCount}
                 </span>
-                <span className="text-[11px] text-muted-foreground">メンバー</span>
+                <span className="text-[11px] text-login-muted font-sans">メンバー</span>
               </div>
 
-              <div className="flex flex-col items-center gap-1">
-                <div
-                  className={cn(
-                    'h-8 w-8 rounded-full flex items-center justify-center',
-                    accentConfig.bgLight
-                  )}
-                >
-                  <CalendarDays size={14} className={accentConfig.text} />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="h-9 w-9 rounded-full bg-login-bg flex items-center justify-center border border-login-border">
+                  <CalendarDays size={15} className="text-login-accent" />
                 </div>
-                <span className="text-[11px] font-semibold text-foreground leading-tight mt-0.5 text-center">
+                <span className="text-[11px] font-semibold text-login-fg leading-tight mt-0.5 font-sans">
                   {album.createdAt}
                 </span>
-                <span className="text-[11px] text-muted-foreground">作成日</span>
+                <span className="text-[11px] text-login-muted font-sans">作成日</span>
               </div>
             </div>
 
-            {/* Existing members avatars */}
+            {/* メンバーアバター */}
             <div className="flex flex-col items-center gap-2">
               <div className="flex -space-x-2">
-                {DUMMY_MEMBERS.slice(0, album.memberCount).map((m, i) => (
-                  <Avatar
-                    key={i}
-                    className="h-7 w-7 ring-2 ring-card"
-                  >
-                    {m.avatar ? (
-                      <AvatarImage src={m.avatar} alt={m.name} />
-                    ) : null}
-                    <AvatarFallback
-                      className={cn(
-                        'text-[10px] font-medium',
-                        accentConfig.bgLight,
-                        accentConfig.text
-                      )}
-                    >
+                {DUMMY_MEMBERS.slice(0, Math.min(album.memberCount, 4)).map((m, i) => (
+                  <Avatar key={i} className="h-7 w-7 ring-2 ring-login-card">
+                    <AvatarImage src="" alt={m.name} />
+                    <AvatarFallback className="text-[10px] font-medium bg-login-bg text-login-accent border border-login-border">
                       {m.name.slice(0, 1)}
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {album.memberCount > DUMMY_MEMBERS.length && (
-                  <div
-                    className={cn(
-                      'h-7 w-7 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-semibold',
-                      accentConfig.bgLight,
-                      accentConfig.text
-                    )}
-                  >
-                    +{album.memberCount - DUMMY_MEMBERS.length}
+                {album.memberCount > 4 && (
+                  <div className="h-7 w-7 rounded-full ring-2 ring-login-card bg-login-bg border border-login-border flex items-center justify-center text-[9px] font-semibold text-login-muted">
+                    +{album.memberCount - 4}
                   </div>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-login-muted font-sans">
                 {album.memberCount}人がすでに参加中
               </p>
             </div>
 
-            <Separator />
+            <div className="h-px bg-login-border" />
 
             {/* CTA */}
             {joinState === 'joined' ? (
               <div className="flex flex-col items-center gap-3">
-                <div
-                  className={cn(
-                    'h-12 w-12 rounded-full flex items-center justify-center',
-                    accentConfig.bgLight
-                  )}
-                >
-                  <Check size={22} strokeWidth={2.5} className={accentConfig.text} />
+                <div className="h-12 w-12 rounded-full bg-login-bg border border-login-border flex items-center justify-center">
+                  <Check size={22} strokeWidth={2.5} className="text-login-accent" />
                 </div>
-                <p className="text-sm font-medium text-foreground text-center">
+                <p className="text-sm font-medium text-login-fg text-center font-sans">
                   グループに参加しました！
                 </p>
                 <Button
-                  size="sm"
                   onClick={handleGoToAlbum}
-                  className={cn(
-                    'w-full gap-2 text-sm font-medium text-white',
-                    accentConfig.bg,
-                    accentConfig.bgHover
-                  )}
+                  className="w-full h-11 gap-2 text-sm font-medium font-sans tracking-wider bg-login-accent hover:bg-login-accent-hover text-login-accent-fg rounded-lg shadow-sm transition-all active:scale-[0.98]"
                 >
                   アルバムを見る
                   <ArrowRight size={14} />
@@ -254,22 +200,18 @@ export function AlbumJoin({ token, accent }: AlbumJoinProps) {
               </div>
             ) : (
               <Button
-                size="default"
                 disabled={joinState === 'loading'}
                 onClick={handleJoin}
                 className={cn(
-                  'w-full gap-2 text-sm font-medium text-white transition-all',
-                  accentConfig.bg,
-                  accentConfig.bgHover,
+                  'w-full h-11 gap-2 text-sm font-medium font-sans tracking-wider',
+                  'bg-login-accent hover:bg-login-accent-hover text-login-accent-fg',
+                  'rounded-lg shadow-sm transition-all active:scale-[0.98]',
                   joinState === 'loading' && 'opacity-70 cursor-not-allowed'
                 )}
               >
                 {joinState === 'loading' ? (
                   <>
-                    <span
-                      className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"
-                      aria-hidden="true"
-                    />
+                    <span className="h-4 w-4 rounded-full border-2 border-login-accent-fg/30 border-t-login-accent-fg animate-spin" aria-hidden="true" />
                     参加中…
                   </>
                 ) : (
@@ -283,14 +225,67 @@ export function AlbumJoin({ token, accent }: AlbumJoinProps) {
           </div>
         </div>
 
-        {/* Footer note */}
-        <p className="text-center text-[11px] text-muted-foreground mt-6 leading-relaxed px-4">
+        <p className="text-center text-[11px] text-login-muted mt-5 leading-relaxed font-sans px-4">
           参加すると、グループ内のすべての写真・動画にアクセスできます。
           <br />
           いつでも退出できます。
         </p>
-
       </div>
-    </main>
+
+      <footer className="absolute bottom-6 text-center text-[11px] text-login-muted font-sans tracking-wider select-none z-10">
+        &copy; 2026 思い出帳
+      </footer>
+    </div>
+  );
+}
+
+function PetalDecoration() {
+  const petals = [
+    { top: '7%',  left: '6%',  size: 16, rotate: 20,  opacity: 0.16 },
+    { top: '13%', left: '89%', size: 12, rotate: -15, opacity: 0.13 },
+    { top: '30%', left: '2%',  size: 9,  rotate: 45,  opacity: 0.11 },
+    { top: '54%', left: '92%', size: 15, rotate: 10,  opacity: 0.14 },
+    { top: '73%', left: '4%',  size: 11, rotate: -30, opacity: 0.12 },
+    { top: '83%', left: '83%', size: 8,  rotate: 60,  opacity: 0.10 },
+    { top: '91%', left: '41%', size: 13, rotate: -10, opacity: 0.09 },
+    { top: '3%',  left: '53%', size: 7,  rotate: 35,  opacity: 0.08 },
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {petals.map((p, i) => (
+        <svg
+          key={i}
+          width={p.size}
+          height={p.size}
+          viewBox="0 0 20 20"
+          style={{
+            position: 'absolute',
+            top: p.top,
+            left: p.left,
+            transform: `rotate(${p.rotate}deg)`,
+            opacity: p.opacity,
+          }}
+        >
+          {[0, 72, 144, 216, 288].map((deg, j) => {
+            const rad = (deg - 90) * (Math.PI / 180);
+            const cx = 10 + Math.cos(rad) * 4.2;
+            const cy = 10 + Math.sin(rad) * 4.2;
+            return (
+              <ellipse
+                key={j}
+                cx={cx}
+                cy={cy}
+                rx="3.2"
+                ry="2.0"
+                transform={`rotate(${deg}, ${cx}, ${cy})`}
+                fill="var(--login-accent-raw)"
+              />
+            );
+          })}
+          <circle cx="10" cy="10" r="1.8" fill="var(--login-accent-raw)" />
+        </svg>
+      ))}
+    </div>
   );
 }
