@@ -8,7 +8,6 @@ import {
   ImageIcon,
   Check,
   ArrowRight,
-  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,11 +37,12 @@ function deriveAlbumInfo(token: string) {
     { name: '鈴木 美咲', avatar: '' },
   ];
 
-  const idx = token.charCodeAt(0) % names.length;
-  const locIdx = (token.charCodeAt(1) ?? 0) % locations.length;
-  const hostIdx = (token.charCodeAt(2) ?? 0) % hosts.length;
-  const photoCount = 12 + (token.charCodeAt(3) ?? 0) % 88;
-  const memberCount = 2 + (token.charCodeAt(4) ?? 0) % 6;
+  const code = (n: number) => token.charCodeAt(n) || 0;
+  const idx = code(0) % names.length;
+  const locIdx = code(1) % locations.length;
+  const hostIdx = code(2) % hosts.length;
+  const photoCount = 12 + code(3) % 88;
+  const memberCount = 2 + code(4) % 6;
 
   return {
     title: names[idx],
@@ -116,15 +116,6 @@ export function AlbumJoin({ token, accent }: AlbumJoinProps) {
 
             {/* Album title overlaid on cover */}
             <div className="absolute bottom-4 left-4 right-4">
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-white mb-2',
-                  accentConfig.bg
-                )}
-              >
-                <Lock size={9} />
-                プライベートグループ
-              </span>
               <h1 className="text-xl font-semibold text-white leading-tight text-balance drop-shadow-sm">
                 {album.title}
               </h1>
@@ -288,16 +279,6 @@ export function AlbumJoin({ token, accent }: AlbumJoinProps) {
                   </>
                 )}
               </Button>
-            )}
-
-            {/* Decline link */}
-            {joinState === 'idle' && (
-              <button
-                onClick={() => router.push('/')}
-                className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                参加しない
-              </button>
             )}
           </div>
         </div>
