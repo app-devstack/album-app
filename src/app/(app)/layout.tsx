@@ -1,4 +1,4 @@
-import { Header } from '@/components/layout/header';
+import { AppHeader } from '@/components/layout/app-header';
 import { GroupProvider } from '@/contexts/GroupContext';
 import { auth } from '@/lib/auth/auth';
 import { cookies, headers } from 'next/headers';
@@ -23,7 +23,7 @@ export default async function AppLayout({
   return (
     <GroupProvider initialGroupId={groupId}>
       <div className="min-h-screen bg-background">
-        <Header user={session.user} />
+        <AppHeader user={session.user} />
         {children}
       </div>
     </GroupProvider>

@@ -14,7 +14,8 @@ import { signOut } from '@/lib/auth/auth-client';
 import { ACCENT_COLORS } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { useAccentStore } from '@/stores/themeStore';
-import { Check, LogOut, Palette } from 'lucide-react';
+import { Check, LogOut, Palette, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface HeaderUser {
@@ -23,7 +24,11 @@ interface HeaderUser {
   image?: string | null;
 }
 
-export function Header({ user }: { user: HeaderUser }) {
+interface AppHeaderProps {
+  user: HeaderUser;
+}
+
+export function AppHeader({ user }: AppHeaderProps) {
   const router = useRouter();
   const accent = useAccentStore((state) => state.accent);
   const onAccentChange = useAccentStore((state) => state.setAccent);
@@ -40,11 +45,13 @@ export function Header({ user }: { user: HeaderUser }) {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         {/* ロゴ */}
-        <div className="flex items-center gap-2.5">
+        <div className="relative flex items-center gap-2.5">
           <AppIcon size={28} className={currentAccent.text} />
           <span className="font-sans text-base font-medium tracking-wider text-foreground">
             思い出帳
           </span>
+
+          <Link href={'/albums'} className="absolute inset-0 z-10" />
         </div>
 
         {/* 右側メニュー */}
@@ -121,6 +128,18 @@ export function Header({ user }: { user: HeaderUser }) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+
+              {/* WIP:設定は別のところに置く */}
+              <DropdownMenuItem
+                onSelect={() => router.push('/settings')}
+                className="flex items-center gap-2 cursor-pointer text-foreground"
+              >
+                <Settings size={14} />
+                <span>設定</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
               <DropdownMenuItem
                 onSelect={handleSignOut}
                 className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
