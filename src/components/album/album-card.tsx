@@ -1,10 +1,9 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Album, Photo } from '@/db/schema';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { MapPin, User, Users } from 'lucide-react';
+import { MapPin, Users } from 'lucide-react';
 
 interface AlbumCardProps {
   album: Album & { latestPhoto?: Photo | null };
@@ -36,22 +35,15 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
 
         {/* タイプバッジ */}
         <div className="absolute top-2.5 right-2.5">
-          {album.type === 'family' ? (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-white',
-                accentConfig.bg
-              )}
-            >
-              <Users size={10} />
-              共有
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-black/60 text-white backdrop-blur-sm">
-              <User size={10} />
-              個人
-            </span>
-          )}
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-white',
+              accentConfig.bg
+            )}
+          >
+            <Users size={10} />
+            共有
+          </span>
         </div>
       </div>
 
@@ -71,31 +63,22 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
             {album.location && (
               <span className="text-[11px] text-muted-foreground/50">·</span>
             )}
+
+            {/* 写真の枚数 */}
+            {/* <span className="text-[11px] text-muted-foreground">
+              {album.photos.length}枚
+            </span> */}
+
+            {/* 作成日 */}
             <span className="text-[11px] text-muted-foreground">
-              {/* {album.photos.length}枚 */}
-              {0}枚
+              {new Date(album.createdAt).toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}
             </span>
           </div>
         </div>
-
-        {/* 共有アルバムのメンバーアバター */}
-        {album.type === 'family' && (
-          <Avatar className="h-6 w-6 shrink-0 ring-1 ring-border mt-0.5">
-            {album.memberAvatar ? (
-              <AvatarImage
-                src={album.memberAvatar}
-                alt={album.memberName ?? 'メンバー'}
-              />
-            ) : null}
-            <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
-              {album.memberName ? (
-                album.memberName.slice(0, 1)
-              ) : (
-                <Users size={12} />
-              )}
-            </AvatarFallback>
-          </Avatar>
-        )}
       </div>
     </button>
   );

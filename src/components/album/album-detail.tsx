@@ -1,7 +1,7 @@
 'use client';
 
 import { AlbumMemos } from '@/components/album/album-memos';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { VideoPlayer } from '@/components/layout/video-player';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { VideoPlayer } from '@/components/layout/video-player';
 import { Album, Photo } from '@/db/schema';
 import {
   useCreateMemo,
@@ -401,7 +400,8 @@ export function AlbumDetail({
               </>
             )}
           </div>
-          {album.type === 'family' && album.memberName && (
+
+          {/* {album.type === 'family' && album.memberName && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <Avatar className="h-5 w-5">
                 {album.memberAvatar ? (
@@ -418,7 +418,7 @@ export function AlbumDetail({
                 {album.memberName} が作成
               </span>
             </div>
-          )}
+          )} */}
         </div>
       </div>
 
