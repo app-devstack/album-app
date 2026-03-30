@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/header';
+import { GroupProvider } from '@/contexts/GroupContext';
 import { auth } from '@/lib/auth/auth';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export default async function AppLayout({
@@ -16,10 +17,15 @@ export default async function AppLayout({
     redirect('/login');
   }
 
+  const cookieStore = await cookies();
+  const initialGroupId = cookieStore.get('currentGroupId')?.value ?? null;
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header user={session.user} />
-      {children}
-    </div>
+    <GroupProvider initialGroupId={initialGroupId}>
+      <div className="min-h-screen bg-background">
+        <Header user={session.user} />
+        {children}
+      </div>
+    </GroupProvider>
   );
 }
