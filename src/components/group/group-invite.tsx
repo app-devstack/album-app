@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { APP_URL } from '@/constants/client';
 import { useInviteToken } from '@/hooks/fetchers/use-invite-token';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Check, Copy } from 'lucide-react';
+import { ArrowLeft, Check, Copy, QrCodeIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -119,7 +119,7 @@ export function GroupInvite({ groupId }: GroupInviteProps) {
           </div>
 
           {/* QRコード */}
-          {/* <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-login-accent text-[10px] font-bold text-login-accent-fg shrink-0">
                 2
@@ -134,7 +134,7 @@ export function GroupInvite({ groupId }: GroupInviteProps) {
                 aria-label="QRコードプレースホルダー"
                 role="img"
               >
-                <QrCode size={48} strokeWidth={1.2} />
+                <QrCodeIcon size={48} strokeWidth={1.2} />
                 <span className="text-[10px] font-medium font-sans opacity-70">
                   QR コード
                 </span>
@@ -143,7 +143,7 @@ export function GroupInvite({ groupId }: GroupInviteProps) {
                 このQRコードをスキャンして参加
               </p>
             </div>
-          </div> */}
+          </div>
 
           {/* 招待コード */}
           <div className="flex flex-col gap-2">
