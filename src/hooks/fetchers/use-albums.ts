@@ -1,17 +1,31 @@
-import { Album, NewAlbum } from '@/db/schema';
+import { Album } from '@/db/schema';
 import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Query Keys
 export const albumKeys = {
   all: ['albums'] as const,
-  lists: () => [...albumKeys.all, 'list'] as const,
+  lists: (groupId: string) => [...albumKeys.all, 'list', groupId] as const,
   detail: (id: string) => [...albumKeys.all, 'detail', id] as const,
 };
 
+type CreateAlbumPayload = {
+  id: string;
+  title: string;
+  type: 'personal' | 'family';
+  coverUrl: string;
+  createdBy: string;
+  groupId: string;
+  memberName?: string | null;
+  memberAvatar?: string | null;
+  sharedWith?: string[] | null;
+  location?: string | null;
+  createdAt: string;
+};
+
 // Fetchers
-const getAlbums = async () => {
-  const res = await api.albums.$get();
+const getAlbums = async (groupId: string) => {
+  const res = await api.albums.$get({ query: { groupId } });
   if (!res.ok) {
     throw new Error('Failed to fetch albums');
   }
@@ -26,7 +40,7 @@ const getAlbum = async (id: string) => {
   return res.json();
 };
 
-const createAlbum = async (newAlbum: NewAlbum) => {
+const createAlbum = async (newAlbum: CreateAlbumPayload) => {
   const res = await api.albums.$post({ json: newAlbum });
   if (!res.ok) {
     throw new Error('Failed to create album');
@@ -54,10 +68,11 @@ const deleteAlbum = async (id: string): Promise<{ message: string }> => {
 };
 
 // Hooks
-export const useAlbums = () => {
+export const useAlbums = (groupId: string) => {
   return useQuery({
-    queryKey: albumKeys.lists(),
-    queryFn: getAlbums,
+    queryKey: albumKeys.lists(groupId),
+    queryFn: () => getAlbums(groupId),
+    enabled: !!groupId,
   });
 };
 
@@ -69,33 +84,33 @@ export const useAlbum = (id: string) => {
   });
 };
 
-export const useCreateAlbum = () => {
+export const useCreateAlbum = (groupId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createAlbum,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: albumKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: albumKeys.lists(groupId) });
     },
   });
 };
 
-export const useUpdateAlbum = () => {
+export const useUpdateAlbum = (groupId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateAlbum,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: albumKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: albumKeys.lists(groupId) });
       queryClient.invalidateQueries({ queryKey: albumKeys.detail(data.id) });
     },
   });
 };
 
-export const useDeleteAlbum = () => {
+export const useDeleteAlbum = (groupId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteAlbum,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: albumKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: albumKeys.lists(groupId) });
     },
   });
 };
