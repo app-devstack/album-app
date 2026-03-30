@@ -1,9 +1,10 @@
 import db from '@/db';
-import { albums, groupMembers, photos } from '@/db/schema';
+import { albums, groupMembers, NewAlbum } from '@/db/schema';
 import { createApp } from '@/lib/api';
+import { getAlbumById, getAllAlbums } from '@/lib/service/albums';
 import { getSession } from '@/lib/service/auth';
 import { zValidator } from '@hono/zod-validator';
-import { and, desc, eq, isNotNull, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
@@ -11,10 +12,6 @@ import { z } from 'zod';
 const createAlbumSchema = z.object({
   title: z.string().min(1, 'タイトルは必須です'),
   type: z.enum(['personal', 'family']).default('personal'),
-  createdBy: z.string().default('自分'),
-  memberName: z.string().nullable().optional(),
-  memberAvatar: z.string().nullable().optional(),
-  sharedWith: z.array(z.string()).nullable().optional(),
   location: z.string().nullable().optional(),
   groupId: z.string().min(1, 'グループIDは必須です'),
 });
@@ -28,43 +25,8 @@ const updateAlbumSchema = z.object({
   location: z.string().nullable().optional(),
 });
 
-/**
- * 指定グループに属するアルバムを、表示可能な最新写真付きで取得する
- */
-async function getAlbumsWithLatestPhoto(groupId: string) {
-  return await db.query.albums.findMany({
-    where: eq(albums.groupId, groupId),
-    with: {
-      photos: {
-        where: or(
-          eq(photos.mediaType, 'image'),
-          isNotNull(photos.thumbnailUrl)
-        ),
-        orderBy: desc(photos.addedAt),
-        limit: 1,
-      },
-    },
-  });
-}
-
-/**
- * 指定アルバムを、表示可能な最新写真（画像 or サムネイルあり動画）付きで取得する
- */
-async function getAlbumWithLatestPhoto(id: string) {
-  return await db.query.albums.findFirst({
-    where: eq(albums.id, id),
-    with: {
-      photos: {
-        where: or(
-          eq(photos.mediaType, 'image'),
-          isNotNull(photos.thumbnailUrl)
-        ),
-        orderBy: desc(photos.addedAt),
-        limit: 1,
-      },
-    },
-  });
-}
+export type CreateAlbumSchema = z.infer<typeof createAlbumSchema>;
+export type UpdateAlbumSchema = z.infer<typeof updateAlbumSchema>;
 
 // Albums Router
 const router = createApp();
@@ -86,7 +48,7 @@ export const albumsRouter = router
     });
     if (!membership) return c.json({ error: 'Forbidden' }, 403);
 
-    const albumsWithLatest = await getAlbumsWithLatestPhoto(groupId);
+    const albumsWithLatest = await getAllAlbums(groupId);
     return c.json(
       albumsWithLatest.map(({ photos, ...alb }) => ({
         ...alb,
@@ -96,7 +58,7 @@ export const albumsRouter = router
   })
   .get('/:id', async (c) => {
     const id = c.req.param('id');
-    const result = await getAlbumWithLatestPhoto(id);
+    const result = await getAlbumById(id);
     if (!result) {
       return c.json({ message: 'Album not found' }, 404);
     }
@@ -124,7 +86,7 @@ export const albumsRouter = router
       userId: session.user.id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    } satisfies NewAlbum;
     await db.insert(albums).values(newAlbum).run();
     return c.json(newAlbum, 201);
   })
@@ -143,7 +105,7 @@ export const albumsRouter = router
       return c.json({ message: 'Album not found or update failed' }, 404);
     }
 
-    const album = await getAlbumWithLatestPhoto(id);
+    const album = await getAlbumById(id);
 
     const { photos: _, ...alb } = album!;
     const latestPhoto = album?.photos[0] ?? null;
