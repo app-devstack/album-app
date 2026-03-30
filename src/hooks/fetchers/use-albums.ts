@@ -1,3 +1,7 @@
+import {
+  CreateAlbumSchema,
+  UpdateAlbumSchema,
+} from '@/app/api/[[...route]]/routes/albums';
 import { Album } from '@/db/schema';
 import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,19 +13,7 @@ export const albumKeys = {
   detail: (id: string) => [...albumKeys.all, 'detail', id] as const,
 };
 
-type CreateAlbumPayload = {
-  id: string;
-  title: string;
-  type: 'personal' | 'family';
-  coverUrl: string;
-  createdBy: string;
-  groupId: string;
-  memberName?: string | null;
-  memberAvatar?: string | null;
-  sharedWith?: string[] | null;
-  location?: string | null;
-  createdAt: string;
-};
+type CreateAlbumPayload = CreateAlbumSchema;
 
 // Fetchers
 const getAlbums = async (groupId: string) => {
@@ -51,7 +43,7 @@ const createAlbum = async (newAlbum: CreateAlbumPayload) => {
 const updateAlbum = async ({
   id,
   ...albumData
-}: Partial<Album> & { id: string }) => {
+}: UpdateAlbumSchema & { id: string }) => {
   const res = await api.albums[':id'].$put({ param: { id }, json: albumData });
   if (!res.ok) {
     throw new Error('Failed to update album');
