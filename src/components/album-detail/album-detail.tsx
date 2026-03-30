@@ -28,11 +28,11 @@ import {
   PlayCircle,
   Plus,
   Settings,
-  X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
 import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
+import { AlbumDetailPhotoMenu } from './album-detail-photo-menu';
 import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
 import { AlbumDetailUploadingOverlay } from './album-detail-uploading-overlay';
 
@@ -137,8 +137,8 @@ export function AlbumDetail({
   const videoCount = photos.filter((p) => p.mediaType === 'video').length;
 
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-      <div className="flex items-center gap-3 mb-6">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
@@ -207,7 +207,7 @@ export function AlbumDetail({
         </div>
       </div>
 
-      <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden mb-6 bg-muted">
+      <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden bg-muted">
         {album.latestPhoto && (
           <img
             src={album.latestPhoto.thumbnailUrl || album.latestPhoto.url}
@@ -314,7 +314,13 @@ export function AlbumDetail({
                         crossOrigin="anonymous"
                       />
                     ) : (
-                      <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
+                      <div
+                        className={cn(
+                          'w-full h-full bg-foreground/5 flex items-center justify-center',
+                          'opacity-40',
+                          accentConfig.bg
+                        )}
+                      >
                         {/* <Film size={32} className="text-muted-foreground" /> */}
                       </div>
                     )
@@ -338,23 +344,13 @@ export function AlbumDetail({
                     </div>
                   )}
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 z-10 text-white transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm('この写真を削除してもよろしいですか？')) {
-                        handleDeletePhoto(item.id);
-                      }
-                    }}
-                    aria-label="写真を削除"
-                  >
-                    <X size={16} />
-                  </Button>
+                  <AlbumDetailPhotoMenu
+                    onDelete={() => handleDeletePhoto(item.id)}
+                  />
                 </div>
               );
             })}
+
             <AlbumDetailAddMediaCell
               onAddClick={() => fileInputRef.current?.click()}
             />
