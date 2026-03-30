@@ -58,7 +58,7 @@ export function CreateAlbumDialog({
         <div className="p-6">
           <DialogHeader className="mb-5">
             <DialogTitle className="font-sans text-lg font-medium">
-              {'アルバムの詳細'}
+              {'アルバムの作成'}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
               {'アルバム名を設定してください。'}
