@@ -134,10 +134,6 @@ export const albums = sqliteTable('albums', {
     .notNull()
     .default('personal'),
   coverUrl: text('cover_url').notNull().default(''),
-  createdBy: text('created_by').notNull().default('自分'),
-  memberName: text('member_name'),
-  memberAvatar: text('member_avatar'),
-  sharedWith: text('shared_with').$type<string[]>(), // JSON array string
   location: text('location'),
   groupId: text('group_id').references(() => groups.id, {
     onDelete: 'set null',
