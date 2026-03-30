@@ -2,6 +2,7 @@
 
 import { AlbumGrid } from '@/components/album/album-grid';
 import { CreateAlbumDialog } from '@/components/album/create-album-dialog';
+import { useGroupContext } from '@/contexts/GroupContext';
 import { type Album } from '@/db/schema';
 import { useAlbums } from '@/hooks/fetchers/use-albums';
 import { useAccentStore } from '@/stores/themeStore';
@@ -11,7 +12,8 @@ import { useState } from 'react';
 export default function AlbumsPage() {
   const router = useRouter();
   const accent = useAccentStore((state) => state.accent);
-  const { data: albums, isLoading, isError } = useAlbums();
+  const { currentGroupId } = useGroupContext();
+  const { data: albums, isLoading, isError } = useAlbums(currentGroupId);
   const [createOpen, setCreateOpen] = useState(false);
 
   const handleAlbumClick = (album: Album) => {

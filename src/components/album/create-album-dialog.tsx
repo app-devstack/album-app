@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useGroupContext } from '@/contexts/GroupContext';
 import { useCreateAlbum } from '@/hooks/fetchers/use-albums';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,8 @@ export function CreateAlbumDialog({
   onOpenChange,
   accent,
 }: CreateAlbumDialogProps) {
-  const { mutateAsync: createAlbumMutation } = useCreateAlbum();
+  const { currentGroupId } = useGroupContext();
+  const { mutateAsync: createAlbumMutation } = useCreateAlbum(currentGroupId);
   const [step, setStep] = useState<1 | 2>(1);
   const [albumType, setAlbumType] = useState<AlbumType>('personal');
   const [albumName, setAlbumName] = useState('');
@@ -55,7 +57,7 @@ export function CreateAlbumDialog({
       type: albumType,
       coverUrl: '',
       createdBy: '自分',
-      // photoCount: 0,
+      groupId: currentGroupId,
       createdAt: new Date().toISOString().split('T')[0],
       ...(albumType === 'family' ? { memberName: '自分', sharedWith: [] } : {}),
     });

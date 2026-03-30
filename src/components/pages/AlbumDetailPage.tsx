@@ -1,6 +1,7 @@
 'use client';
 
 import { AlbumDetail } from '@/components/album/album-detail';
+import { useGroupContext } from '@/contexts/GroupContext';
 import { type Album } from '@/db/schema';
 import {
   useAlbum,
@@ -16,12 +17,13 @@ export default function AlbumDetailPage() {
   const albumId = params.albumId as string;
 
   const accent = useAccentStore((state) => state.accent);
+  const { currentGroupId } = useGroupContext();
   const { data: album, isLoading, isError } = useAlbum(albumId);
-  const { mutateAsync: updateAlbumMutation } = useUpdateAlbum();
-  const { mutateAsync: deleteAlbumMutation } = useDeleteAlbum();
+  const { mutateAsync: updateAlbumMutation } = useUpdateAlbum(currentGroupId);
+  const { mutateAsync: deleteAlbumMutation } = useDeleteAlbum(currentGroupId);
 
   const handleBack = () => {
-    router.push('/');
+    router.push('/albums');
   };
 
   const handleAlbumUpdate = async (
@@ -32,7 +34,7 @@ export default function AlbumDetailPage() {
 
   const handleAlbumDelete = async (id: string) => {
     await deleteAlbumMutation(id);
-    router.push('/');
+    router.push('/albums');
   };
 
   if (isLoading) return <div>Loading album...</div>;
