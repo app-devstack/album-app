@@ -1,5 +1,11 @@
 import { relations, sql } from 'drizzle-orm';
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+} from 'drizzle-orm/sqlite-core';
 
 // ============================================================
 // auth テーブル
@@ -60,6 +66,65 @@ export const verifications = sqliteTable('verification', {
 });
 
 // ============================================================
+// groups テーブル
+// ============================================================
+export const groups = sqliteTable('groups', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  // coverUrl: text('cover_url').notNull().default(''),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(date('now'))`),
+  updatedAt: text('updated_at')
+    .notNull()
+    .default(sql`(date('now'))`),
+});
+
+// ============================================================
+// group_members テーブル
+// ============================================================
+export const groupMembers = sqliteTable(
+  'group_members',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['owner', 'member'] })
+      .notNull()
+      .default('member'),
+    joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.groupId, t.userId] }),
+  })
+);
+
+// ============================================================
+// group_invite_tokens テーブル
+// ============================================================
+export const groupInviteTokens = sqliteTable('group_invite_tokens', {
+  id: text('id').primaryKey(),
+  groupId: text('group_id')
+    .notNull()
+    .references(() => groups.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }), // NULL = 無期限
+  isRevoked: integer('is_revoked', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+
+// ============================================================
 // albums テーブル
 // ============================================================
 export const albums = sqliteTable('albums', {
@@ -74,6 +139,10 @@ export const albums = sqliteTable('albums', {
   memberAvatar: text('member_avatar'),
   sharedWith: text('shared_with').$type<string[]>(), // JSON array string
   location: text('location'),
+  groupId: text('group_id').references(() => groups.id, {
+    onDelete: 'set null',
+  }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
   createdAt: text('created_at')
     .notNull()
     .default(sql`(date('now'))`),
@@ -122,8 +191,33 @@ export const memos = sqliteTable('memos', {
     .default(sql`(date('now'))`),
 });
 
-export const albumsRelations = relations(albums, ({ many }) => ({
+export const groupsRelations = relations(groups, ({ many }) => ({
+  albums: many(albums),
+  members: many(groupMembers),
+  inviteTokens: many(groupInviteTokens),
+}));
+
+export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
+  group: one(groups, {
+    fields: [groupMembers.groupId],
+    references: [groups.id],
+  }),
+  user: one(users, { fields: [groupMembers.userId], references: [users.id] }),
+}));
+
+export const groupInviteTokensRelations = relations(
+  groupInviteTokens,
+  ({ one }) => ({
+    group: one(groups, {
+      fields: [groupInviteTokens.groupId],
+      references: [groups.id],
+    }),
+  })
+);
+
+export const albumsRelations = relations(albums, ({ one, many }) => ({
   photos: many(photos),
+  group: one(groups, { fields: [albums.groupId], references: [groups.id] }),
 }));
 
 export const photosRelations = relations(photos, ({ one }) => ({
@@ -136,6 +230,12 @@ export const photosRelations = relations(photos, ({ one }) => ({
 // ============================================================
 // Type exports
 // ============================================================
+export type Group = typeof groups.$inferSelect;
+export type NewGroup = typeof groups.$inferInsert;
+export type GroupMember = typeof groupMembers.$inferSelect;
+export type NewGroupMember = typeof groupMembers.$inferInsert;
+export type GroupInviteToken = typeof groupInviteTokens.$inferSelect;
+export type NewGroupInviteToken = typeof groupInviteTokens.$inferInsert;
 export type Album = typeof albums.$inferSelect;
 export type NewAlbum = typeof albums.$inferInsert;
 export type Photo = typeof photos.$inferSelect;
