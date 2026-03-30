@@ -1,15 +1,7 @@
 'use client';
 
 import { AlbumMemos } from '@/components/album/album-memos';
-import { VideoPlayer } from '@/components/layout/video-player';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Album, Photo } from '@/db/schema';
 import {
@@ -36,10 +28,13 @@ import {
   PlayCircle,
   Plus,
   Settings,
-  Trash2,
-  X
+  X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
+import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
+import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
+import { AlbumDetailUploadingOverlay } from './album-detail-uploading-overlay';
 
 interface UploadingItem {
   /** ローカルで識別するための仮ID */
@@ -60,146 +55,6 @@ function formatDuration(secs: number): string {
   const s = Math.floor(secs % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
-
-// ---- 分離コンポーネント ----
-
-interface AddMediaCellProps {
-  onAddClick: () => void;
-}
-
-function AddMediaCell({ onAddClick }: AddMediaCellProps) {
-  return (
-    <button
-      className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted hover:border-muted-foreground/50 transition-colors"
-      onClick={onAddClick}
-      aria-label="メディアを追加"
-    >
-      <ImagePlus size={24} />
-      <span className="text-xs mt-2">追加</span>
-    </button>
-  );
-}
-
-interface UploadingOverlayProps {
-  uploadingItems: UploadingItem[];
-  accentText: string;
-}
-
-function UploadingOverlay({
-  uploadingItems,
-  accentText,
-}: UploadingOverlayProps) {
-  if (uploadingItems.length === 0) return null;
-  return (
-    <div
-      className="absolute inset-0 rounded-xl bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-10"
-      aria-live="polite"
-      aria-label="アップロード中"
-    >
-      <div
-        className={cn(
-          'w-10 h-10 rounded-full animate-spin border-4 border-muted border-t-current',
-          accentText
-        )}
-      />
-      <p className={cn('text-sm font-medium', accentText)}>
-        アップロード中… ({uploadingItems.length}件)
-      </p>
-    </div>
-  );
-}
-
-interface LightboxDialogProps {
-  item: Photo | null;
-  onClose: () => void;
-}
-
-function LightboxDialog({ item, onClose }: LightboxDialogProps) {
-  if (!item) return null;
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none">
-        {item.mediaType === 'video' ? (
-          <VideoPlayer src={item.url} />
-        ) : (
-          <img
-            src={item.url}
-            alt={item.alt}
-            className="w-full h-auto object-contain rounded-lg"
-            crossOrigin="anonymous"
-          />
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-interface SettingsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  editTitle: string;
-  onEditTitleChange: (title: string) => void;
-  onSave: () => Promise<void>;
-  onDelete: () => Promise<void>;
-  accentBg: string;
-  accentBgHover: string;
-}
-
-function SettingsDialog({
-  open,
-  onOpenChange,
-  editTitle,
-  onEditTitleChange,
-  onSave,
-  onDelete,
-  accentBg,
-  accentBgHover,
-}: SettingsDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>アルバム設定</DialogTitle>
-          <DialogDescription>
-            アルバムのタイトルとカバー写真を変更できます。
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label htmlFor="album-title" className="text-sm font-medium">
-              タイトル
-            </label>
-            <Input
-              id="album-title"
-              value={editTitle}
-              onChange={(e) => onEditTitleChange(e.target.value)}
-            />
-          </div>
-          {/* カバー写真はアルバム内の最新写真を使用するため、プリセット選択は不要 */}
-        </div>
-        <div className="flex justify-between items-center">
-          <Button variant="destructive" size="sm" onClick={onDelete}>
-            <Trash2 size={14} className="mr-1.5" />
-            アルバムを削除
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              キャンセル
-            </Button>
-            <Button
-              onClick={onSave}
-              className={cn('text-white', accentBg, accentBgHover)}
-            >
-              保存
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ---- メインコンポーネント ----
 
 export function AlbumDetail({
   album,
@@ -460,7 +315,7 @@ export function AlbumDetail({
                       />
                     ) : (
                       <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
-                        <Film size={32} className="text-muted-foreground" />
+                        {/* <Film size={32} className="text-muted-foreground" /> */}
                       </div>
                     )
                   ) : (
@@ -471,6 +326,7 @@ export function AlbumDetail({
                       crossOrigin="anonymous"
                     />
                   )}
+
                   <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   {isVideo && (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -481,10 +337,11 @@ export function AlbumDetail({
                       />
                     </div>
                   )}
+
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 z-10 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 z-10 text-white transition-opacity"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (confirm('この写真を削除してもよろしいですか？')) {
@@ -498,10 +355,12 @@ export function AlbumDetail({
                 </div>
               );
             })}
-            <AddMediaCell onAddClick={() => fileInputRef.current?.click()} />
+            <AlbumDetailAddMediaCell
+              onAddClick={() => fileInputRef.current?.click()}
+            />
           </div>
 
-          <UploadingOverlay
+          <AlbumDetailUploadingOverlay
             uploadingItems={uploadingItems}
             accentText={accentConfig.text}
           />
@@ -530,12 +389,12 @@ export function AlbumDetail({
         accept="image/*,video/*"
       />
 
-      <LightboxDialog
+      <AlbumDetailLightboxDialog
         item={lightboxItem}
         onClose={() => setLightboxItem(null)}
       />
 
-      <SettingsDialog
+      <AlbumDetailSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         editTitle={editTitle}
