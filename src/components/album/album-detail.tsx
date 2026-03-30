@@ -37,9 +37,7 @@ import {
   Plus,
   Settings,
   Trash2,
-  User,
-  Users,
-  X,
+  X
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -342,17 +340,6 @@ export function AlbumDetail({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium',
-              album.type === 'family'
-                ? cn(accentConfig.bgLight, accentConfig.text)
-                : 'bg-muted text-muted-foreground'
-            )}
-          >
-            {album.type === 'family' ? <Users size={10} /> : <User size={10} />}
-            {album.type === 'family' ? '共有' : '個人'}
-          </span>
           <Button
             variant="ghost"
             size="icon"

@@ -21,9 +21,6 @@ export function AlbumGrid({
 }: AlbumGridProps) {
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
 
-  const personalCount = albums.filter((a) => a.type === 'personal').length;
-  const familyCount = albums.filter((a) => a.type === 'family').length;
-
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {/* ページタイトル */}
@@ -32,10 +29,7 @@ export function AlbumGrid({
           アルバム一覧
         </h1>
         <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-          全{albums.length}冊 ·
-          <span className="ml-1">個人{personalCount}冊</span>
-          <span className="mx-1 text-muted-foreground/40">·</span>
-          <span>共有{familyCount}冊</span>
+          全{albums.length}冊
         </p>
       </div>
 
