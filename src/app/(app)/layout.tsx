@@ -18,10 +18,10 @@ export default async function AppLayout({
   }
 
   const cookieStore = await cookies();
-  const initialGroupId = cookieStore.get('currentGroupId')?.value ?? null;
+  const groupId = cookieStore.get('currentGroupId')?.value ?? '';
 
   return (
-    <GroupProvider initialGroupId={initialGroupId}>
+    <GroupProvider initialGroupId={groupId}>
       <div className="min-h-screen bg-background">
         <Header user={session.user} />
         {children}

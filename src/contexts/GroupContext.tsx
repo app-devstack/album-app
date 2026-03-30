@@ -3,8 +3,8 @@
 import { createContext, ReactNode, useContext, useState } from 'react';
 
 type GroupContextType = {
-  currentGroupId: string | null;
-  setCurrentGroupId: (groupId: string | null) => void;
+  currentGroupId: string;
+  setCurrentGroupId: (groupId: string) => void;
 };
 
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
@@ -14,11 +14,11 @@ export function GroupProvider({
   initialGroupId,
 }: {
   children: ReactNode;
-  initialGroupId: string | null;
+  initialGroupId: string;
 }) {
-  const [currentGroupId, setGroupIdState] = useState(initialGroupId);
+  const [currentGroupId, setGroupIdState] = useState<string>(initialGroupId);
 
-  const setCurrentGroupId = (groupId: string | null) => {
+  const setCurrentGroupId = (groupId: string) => {
     if (groupId) {
       document.cookie = `currentGroupId=${groupId}; path=/; max-age=31536000; SameSite=Lax`;
     } else {
