@@ -1,7 +1,9 @@
 import { createApp } from '@/lib/api';
 import { handle } from 'hono/vercel';
-import { authRouter } from './routes/auth';
 import { albumsRouter } from './routes/albums';
+import { authRouter } from './routes/auth';
+import { groupsRouter } from './routes/groups';
+import { joinRouter } from './routes/join';
 import { memosRouter } from './routes/memos';
 import { photosRouter } from './routes/photos';
 import { profileRouter } from './routes/profile';
@@ -18,6 +20,8 @@ const route = app
   .get('/', (c) => c.json({ message: 'Welcome to the Album API' }))
   .route('/auth', authRouter)
   .route('/albums', albumsRouter)
+  .route('/groups', groupsRouter)
+  .route('/join', joinRouter)
   .route('/photos', photosRouter)
   .route('/memos', memosRouter)
   .route('/profile', profileRouter);

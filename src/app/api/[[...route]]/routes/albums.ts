@@ -1,8 +1,9 @@
 import db from '@/db';
-import { albums, photos } from '@/db/schema';
+import { albums, groupMembers, photos } from '@/db/schema';
 import { createApp } from '@/lib/api';
+import { getSession } from '@/lib/service/auth';
 import { zValidator } from '@hono/zod-validator';
-import { desc, eq, isNotNull, or } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, or } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
@@ -15,6 +16,7 @@ const createAlbumSchema = z.object({
   memberAvatar: z.string().nullable().optional(),
   sharedWith: z.array(z.string()).nullable().optional(),
   location: z.string().nullable().optional(),
+  groupId: z.string().min(1, 'グループIDは必須です'),
 });
 
 const updateAlbumSchema = z.object({
@@ -27,10 +29,11 @@ const updateAlbumSchema = z.object({
 });
 
 /**
- * 全アルバムを、表示可能な最新写真（画像 or サムネイルあり動画）付きで取得する
+ * 指定グループに属するアルバムを、表示可能な最新写真付きで取得する
  */
-async function getAlbumsWithLatestPhoto() {
+async function getAlbumsWithLatestPhoto(groupId: string) {
   return await db.query.albums.findMany({
+    where: eq(albums.groupId, groupId),
     with: {
       photos: {
         where: or(
@@ -68,7 +71,22 @@ const router = createApp();
 
 export const albumsRouter = router
   .get('/', async (c) => {
-    const albumsWithLatest = await getAlbumsWithLatestPhoto();
+    const session = await getSession(c.req.raw.headers);
+    if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+    const groupId = c.req.query('groupId');
+    if (!groupId) return c.json({ error: 'groupId is required' }, 400);
+
+    // グループメンバーかどうかを確認
+    const membership = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.userId, session.user.id)
+      ),
+    });
+    if (!membership) return c.json({ error: 'Forbidden' }, 403);
+
+    const albumsWithLatest = await getAlbumsWithLatestPhoto(groupId);
     return c.json(
       albumsWithLatest.map(({ photos, ...alb }) => ({
         ...alb,
@@ -86,11 +104,24 @@ export const albumsRouter = router
     return c.json({ ...alb, latestPhoto: ph[0] ?? null });
   })
   .post('/', zValidator('json', createAlbumSchema), async (c) => {
+    const session = await getSession(c.req.raw.headers);
+    if (!session) return c.json({ error: 'Unauthorized' }, 401);
     const body = c.req.valid('json');
+
+    // グループメンバーかどうかを確認
+    const membership = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, body.groupId),
+        eq(groupMembers.userId, session.user.id)
+      ),
+    });
+    if (!membership) return c.json({ error: 'Forbidden' }, 403);
+
     const newAlbum = {
       ...body,
       id: uuidv7(),
       coverUrl: '',
+      userId: session.user.id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
