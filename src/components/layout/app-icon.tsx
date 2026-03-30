@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * 思い出帳 アプリアイコン
@@ -12,9 +12,10 @@
 interface AppIconProps {
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export function AppIcon({ size = 24, className }: AppIconProps) {
+export function AppIcon({ size = 24, className, style }: AppIconProps) {
   return (
     <svg
       width={size}
@@ -24,6 +25,7 @@ export function AppIcon({ size = 24, className }: AppIconProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
+      style={style}
     >
       {/* アルバム背景 — 丸みのある正方形 */}
       <rect
@@ -103,17 +105,53 @@ export function AppIcon({ size = 24, className }: AppIconProps) {
       />
 
       {/* 下段テキスト行（メモを示す横線） */}
-      <line x1="5.5" y1="22.5" x2="14.5" y2="22.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.5" />
-      <line x1="5.5" y1="25" x2="12" y2="25" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.35" />
-      <line x1="21" y1="22.5" x2="30" y2="22.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.5" />
-      <line x1="21" y1="25" x2="27.5" y2="25" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.35" />
+      <line
+        x1="5.5"
+        y1="22.5"
+        x2="14.5"
+        y2="22.5"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        opacity="0.5"
+      />
+      <line
+        x1="5.5"
+        y1="25"
+        x2="12"
+        y2="25"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        opacity="0.35"
+      />
+      <line
+        x1="21"
+        y1="22.5"
+        x2="30"
+        y2="22.5"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        opacity="0.5"
+      />
+      <line
+        x1="21"
+        y1="25"
+        x2="27.5"
+        y2="25"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        opacity="0.35"
+      />
 
       {/* 桜の花 — アルバム上部中央に重ねて配置 */}
       {/* 花びら x5（72°間隔） */}
       {[0, 72, 144, 216, 288].map((deg, i) => {
         const rad = (deg - 90) * (Math.PI / 180);
         const cx = 18 + Math.cos(rad) * 2.8;
-        const cy = 5  + Math.sin(rad) * 2.8;
+        const cy = 5 + Math.sin(rad) * 2.8;
         return (
           <ellipse
             key={i}
@@ -131,7 +169,14 @@ export function AppIcon({ size = 24, className }: AppIconProps) {
       <circle cx="18" cy="5" r="1.3" fill="currentColor" />
 
       {/* ノッチ（背表紙の留め具） */}
-      <rect x="16.2" y="3.2" width="3.6" height="2.4" rx="1.1" fill="currentColor" />
+      <rect
+        x="16.2"
+        y="3.2"
+        width="3.6"
+        height="2.4"
+        rx="1.1"
+        fill="currentColor"
+      />
     </svg>
   );
 }
