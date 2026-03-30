@@ -1,5 +1,5 @@
-import AlbumsPage from '@/components/pages/AlbumsPage';
+import GroupSelectPage from '@/components/pages/GroupSelectPage';
 
 export default function Home() {
-  return <AlbumsPage />;
+  return <GroupSelectPage />;
 }
