@@ -19,7 +19,7 @@ export function AlbumDetailLightboxDialog({
           <VideoPlayer src={item.url} />
         ) : (
           <img
-            src={item.url}
+            src={`/api/photos/${item.id}/optimized?mode=full`}
             alt={item.alt}
             className="w-full h-auto object-contain rounded-lg"
             crossOrigin="anonymous"

@@ -24,7 +24,8 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
       <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-muted">
         {album.latestPhoto && (
           <img
-            src={album.latestPhoto.thumbnailUrl || album.latestPhoto.url}
+            // src={album.latestPhoto.thumbnailUrl || album.latestPhoto.url}
+            src={`/api/photos/${album.latestPhoto.id}/optimized?mode=thumb`}
             alt={`${album.title}のカバー`}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             crossOrigin="anonymous"

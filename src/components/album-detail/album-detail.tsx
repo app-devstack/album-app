@@ -15,7 +15,11 @@ import {
   useDeletePhoto,
   usePhotos,
 } from '@/hooks/fetchers/use-photos';
-import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
+import {
+  ACCENT_COLORS,
+  type AccentColor,
+  type AccentColorConfig,
+} from '@/lib/data';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -25,14 +29,13 @@ import {
   Film,
   ImagePlus,
   MapPin,
-  PlayCircle,
   Plus,
   Settings,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
 import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
-import { AlbumDetailPhotoMenu } from './album-detail-photo-menu';
+import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
 import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
 import { AlbumDetailUploadingOverlay } from './album-detail-uploading-overlay';
 
@@ -50,10 +53,106 @@ interface AlbumDetailProps {
   onAlbumDelete: (id: string) => Promise<void>;
 }
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
 function formatDuration(secs: number): string {
   const m = Math.floor(secs / 60);
   const s = Math.floor(secs % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+interface AlbumCoverProps {
+  latestPhoto?: Photo | null;
+  title: string;
+  location?: string | null;
+  createdAt: string;
+  imageCount: number;
+  videoCount: number;
+}
+
+function AlbumCover({
+  latestPhoto,
+  title,
+  location,
+  createdAt,
+  imageCount,
+  videoCount,
+}: AlbumCoverProps) {
+  return (
+    <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden bg-muted">
+      {latestPhoto && (
+        <img
+          src={latestPhoto.thumbnailUrl || latestPhoto.url}
+          alt={`${title}のカバー`}
+          className="w-full h-full object-cover"
+          crossOrigin="anonymous"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+      <div className="absolute bottom-4 left-5 text-white flex flex-col gap-1">
+        <div className="flex items-center gap-3 text-xs text-white/75">
+          {location && (
+            <span className="flex items-center gap-1">
+              <MapPin size={11} />
+              {location}
+            </span>
+          )}
+          <span className="flex items-center gap-1">
+            <CalendarDays size={11} />
+            {formatDate(createdAt)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <span>{imageCount}枚の写真</span>
+          {videoCount > 0 && (
+            <>
+              <span className="text-white/40">·</span>
+              <span className="flex items-center gap-1">
+                <Film size={12} />
+                {videoCount}本の動画
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface EmptyMediaStateProps {
+  accentConfig: AccentColorConfig;
+  onAddClick: () => void;
+}
+
+function EmptyMediaState({ accentConfig, onAddClick }: EmptyMediaStateProps) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+        <ImagePlus size={22} className="text-muted-foreground" />
+      </div>
+      <p className="text-sm font-medium text-foreground">
+        まだメディアがありません
+      </p>
+      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+        写真や動画を追加しましょう。
+      </p>
+      <Button
+        size="sm"
+        className={cn(
+          'mt-4 text-white gap-1.5',
+          accentConfig.bg,
+          accentConfig.bgHover
+        )}
+        onClick={onAddClick}
+      >
+        <Plus size={13} />
+        追加する
+      </Button>
+    </div>
+  );
 }
 
 export function AlbumDetail({
@@ -128,10 +227,6 @@ export function AlbumDetail({
     setSettingsOpen(false);
   };
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-  };
   // const imageCount = album.photoCount;
   const imageCount = photos.filter((p) => p.mediaType === 'image').length;
   const videoCount = photos.filter((p) => p.mediaType === 'video').length;
@@ -207,149 +302,34 @@ export function AlbumDetail({
         </div>
       </div>
 
-      <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden bg-muted">
-        {album.latestPhoto && (
-          <img
-            src={album.latestPhoto.thumbnailUrl || album.latestPhoto.url}
-            alt={`${album.title}のカバー`}
-            className="w-full h-full object-cover"
-            crossOrigin="anonymous"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <div className="absolute bottom-4 left-5 text-white flex flex-col gap-1">
-          <div className="flex items-center gap-3 text-xs text-white/75">
-            {album.location && (
-              <span className="flex items-center gap-1">
-                <MapPin size={11} />
-                {album.location}
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <CalendarDays size={11} />
-              {formatDate(album.createdAt)}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <span>{imageCount}枚の写真</span>
-            {videoCount > 0 && (
-              <>
-                <span className="text-white/40">·</span>
-                <span className="flex items-center gap-1">
-                  <Film size={12} />
-                  {videoCount}本の動画
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* {album.type === 'family' && album.memberName && (
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <Avatar className="h-5 w-5">
-                {album.memberAvatar ? (
-                  <AvatarImage
-                    src={album.memberAvatar}
-                    alt={album.memberName}
-                  />
-                ) : null}
-                <AvatarFallback className="text-[9px]">
-                  {album.memberName.slice(0, 1)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xs opacity-80">
-                {album.memberName} が作成
-              </span>
-            </div>
-          )} */}
-        </div>
-      </div>
+      <AlbumCover
+        latestPhoto={album.latestPhoto}
+        title={album.title}
+        location={album.location}
+        createdAt={album.createdAt}
+        imageCount={imageCount}
+        videoCount={videoCount}
+      />
 
       {isLoadingPhotos ? (
         <div>Loading photos...</div>
       ) : photos.length === 0 && uploadingItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <ImagePlus size={22} className="text-muted-foreground" />
-          </div>
-          <p className="text-sm font-medium text-foreground">
-            まだメディアがありません
-          </p>
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            写真や動画を追加しましょう。
-          </p>
-          <Button
-            size="sm"
-            className={cn(
-              'mt-4 text-white gap-1.5',
-              accentConfig.bg,
-              accentConfig.bgHover
-            )}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Plus size={13} />
-            追加する
-          </Button>
-        </div>
+        <EmptyMediaState
+          accentConfig={accentConfig}
+          onAddClick={() => fileInputRef.current?.click()}
+        />
       ) : (
         <div className="relative">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-            {photos.map((item) => {
-              const isVideo = item.mediaType === 'video';
-              return (
-                <div
-                  key={item.id}
-                  className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer"
-                  onClick={() => setLightboxItem(item)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${isVideo ? '動画' : '写真'}を開く: ${item.alt}`}
-                  onKeyDown={(e) => e.key === 'Enter' && setLightboxItem(item)}
-                >
-                  {isVideo ? (
-                    item.thumbnailUrl ? (
-                      <img
-                        src={item.thumbnailUrl}
-                        alt={item.alt}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        crossOrigin="anonymous"
-                      />
-                    ) : (
-                      <div
-                        className={cn(
-                          'w-full h-full bg-foreground/5 flex items-center justify-center',
-                          'opacity-40',
-                          accentConfig.bg
-                        )}
-                      >
-                        {/* <Film size={32} className="text-muted-foreground" /> */}
-                      </div>
-                    )
-                  ) : (
-                    <img
-                      src={item.url}
-                      alt={item.alt}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      crossOrigin="anonymous"
-                    />
-                  )}
-
-                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  {isVideo && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <PlayCircle
-                        size={40}
-                        className="text-white/80 drop-shadow-lg"
-                        strokeWidth={1.5}
-                      />
-                    </div>
-                  )}
-
-                  <AlbumDetailPhotoMenu
-                    onDelete={() => handleDeletePhoto(item.id)}
-                  />
-                </div>
-              );
-            })}
+            {photos.map((item) => (
+              <AlbumDetailPhotoCell
+                key={item.id}
+                item={item}
+                accentConfig={accentConfig}
+                onOpen={setLightboxItem}
+                onDelete={handleDeletePhoto}
+              />
+            ))}
 
             <AlbumDetailAddMediaCell
               onAddClick={() => fileInputRef.current?.click()}
