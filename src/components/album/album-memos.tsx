@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Check, X, NotebookPen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { type Memo, type Album } from '@/db/schema';
+import { type Album, type Memo } from '@/db/schema';
 import { type AccentColorConfig } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { Check, NotebookPen, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 const MOOD_OPTIONS = [
   { label: '感動', color: 'bg-rose-100 text-rose-700' },
@@ -112,7 +112,7 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
         </div>
 
         {!editing && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex items-center gap-0.5 transition-opacity shrink-0">
             <button
               onClick={() => setEditing(true)}
               className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
