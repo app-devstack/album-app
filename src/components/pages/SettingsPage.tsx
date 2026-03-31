@@ -9,7 +9,6 @@ import { useGroups } from '@/hooks/fetchers/use-groups';
 import { signOut, useSession } from '@/lib/auth/auth-client';
 import { LogOut, Mail, Shield, UsersIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 
 export function SettingsPage() {
   const { data, isPending } = useSession();
@@ -18,10 +17,6 @@ export function SettingsPage() {
   const { data: groups = [] } = useGroups();
   const router = useRouter();
   const { currentGroupId } = useGroupContext();
-
-  const handleInProgress = () => {
-    toast.info('この機能は現在開発中です。しばらくお待ちください。');
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -74,8 +69,7 @@ export function SettingsPage() {
               icon={<Shield size={16} />}
               label="グループを管理"
               description="メンバーの権限・グループ設定"
-              // href={`/groups/${currentGroupId}/settings`}
-              onClick={handleInProgress}
+              href={`/groups/${currentGroupId}/setting`}
             />
           </div>
         </section>
