@@ -41,23 +41,26 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ヘッダー */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="max-w-xl mx-auto px-4 h-14 flex items-center gap-3">
+      <div className="max-w-xl mx-auto px-4 py-6 flex flex-col gap-8">
+        {/* ヘッダー */}
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
+            size="icon"
             onClick={() => router.back()}
-            aria-label="戻る"
+            className="h-8 w-8 shrink-0 rounded-full"
+            aria-label="アルバム一覧に戻る"
           >
             <ArrowLeft size={16} />
           </Button>
-          <h1 className="font-medium text-sm">グループ設定</h1>
-        </div>
-      </div>
 
-      <div className="max-w-xl mx-auto px-4 py-6 flex flex-col gap-8">
+          <div className="flex-1 min-w-0 flex items-center gap-2 group">
+            <h1 className="font-sans text-xl font-medium text-foreground truncate tracking-wide">
+              グループ設定
+            </h1>
+          </div>
+        </div>
+
         {/* グループ情報セクション */}
         <section className="flex flex-col gap-3">
           <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
