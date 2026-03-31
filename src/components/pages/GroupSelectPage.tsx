@@ -58,7 +58,7 @@ export default function GroupSelectPage() {
               <button
                 key={group.id}
                 onClick={() => handleSelectGroup(group.id)}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-border hover:bg-accent transition-colors text-left"
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-border hover:bg-muted transition-colors text-left"
               >
                 <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                   <Users size={16} className="text-muted-foreground" />
