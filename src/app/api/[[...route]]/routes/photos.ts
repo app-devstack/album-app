@@ -31,6 +31,55 @@ export type CreatePhotoRequest = z.infer<typeof createPhotoSchema>;
 const router = createApp();
 
 export const photosRouter = router
+  .get('/:photoId/optimized', async (c) => {
+    const photoId = c.req.param('photoId');
+    const mode = c.req.query('mode') || 'thumb'; // 'thumb' or 'full'
+
+    const photoData = await db
+      .select()
+      .from(photos)
+      .where(eq(photos.id, photoId))
+      .get();
+
+    if (!photoData || !photoData.url) {
+      return c.json({ error: 'Photo not found' }, 404);
+    }
+
+    const isThumb = mode === 'thumb';
+
+    const imageOptions = {
+      width: isThumb ? 400 : 1920,
+      height: isThumb ? 400 : undefined,
+      fit: isThumb ? 'cover' : 'scale-down',
+      quality: isThumb ? 75 : 85,
+      format: 'auto',
+    };
+
+    const sourceUrl = photoData.thumbnailUrl || photoData.url;
+
+    try {
+      // Cloudflare Image Resizing を適用して fetch
+      const response = await fetch(sourceUrl, { cf: imageOptions });
+
+      if (!response.ok) {
+        console.error(`Failed to fetch source image: ${response.status}`);
+        return c.text('Failed to process image', 500);
+      }
+
+      // レスポンスの返却（キャッシュヘッダーを付与）
+      const res = new Response(response.body, response);
+      res.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      res.headers.set(
+        'Content-Type',
+        response.headers.get('Content-Type') || 'image/webp'
+      );
+
+      return res;
+    } catch (error) {
+      console.error('Image optimization error:', error);
+      return c.text('Internal Server Error', 500);
+    }
+  })
   .get('/album/:albumId', async (c) => {
     const albumId = c.req.param('albumId');
     const albumPhotos = await db
