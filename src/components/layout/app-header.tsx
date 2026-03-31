@@ -70,12 +70,14 @@ interface HeaderBrandProps {
 
 function HeaderBrand({ currentAccent }: HeaderBrandProps) {
   return (
-    <>
-      <AppIcon size={28} className={cn('shrink-0', currentAccent.text)} />
-      <span className="font-sans text-base font-medium tracking-wider text-foreground hidden sm:inline">
+    <div className="relative flex items-center gap-2.5">
+      <AppIcon size={28} className={currentAccent.text} />
+      <span className="font-sans text-base font-medium tracking-wider text-foreground">
         思い出帳
       </span>
-    </>
+
+      <Link href={'/albums'} className="absolute inset-0 z-10" />
+    </div>
   );
 }
 
