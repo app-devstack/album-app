@@ -85,7 +85,7 @@ function AlbumCover({
     <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden bg-muted">
       {latestPhoto && (
         <img
-          src={latestPhoto.thumbnailUrl || latestPhoto.url}
+          src={`/api/photos/${latestPhoto.id}/optimized?mode=thumb`}
           alt={`${title}のカバー`}
           className="w-full h-full object-cover"
           crossOrigin="anonymous"
