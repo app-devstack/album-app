@@ -79,7 +79,7 @@ class R2Manager {
    */
   static readonly MAX_FILE_SIZE = {
     image: 10 * 1024 * 1024, // 10MB
-    video: 100 * 1024 * 1024, // 100MB
+    video: 500 * 1024 * 1024, // 500MB (長めの動画に対応するため100MBから増量)
   } as const;
 
   private s3Client: S3Client = s3Client;
