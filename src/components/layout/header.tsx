@@ -12,9 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut } from '@/lib/auth/auth-client';
 import { ACCENT_COLORS } from '@/lib/data';
+import { MOCK_GROUPS } from '@/lib/settings-data';
 import { cn } from '@/lib/utils';
 import { useAccentStore } from '@/stores/themeStore';
-import { Check, LogOut, Palette } from 'lucide-react';
+import { Check, LogOut, Palette, Settings, Users } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface HeaderUser {
@@ -29,6 +31,9 @@ export function Header({ user }: { user: HeaderUser }) {
   const onAccentChange = useAccentStore((state) => state.setAccent);
   const currentAccent = ACCENT_COLORS.find((a) => a.id === accent)!;
 
+  // 現在のアクティブグループ（先頭 = デフォルト）
+  const activeGroup = MOCK_GROUPS[0];
+
   const handleSignOut = async () => {
     await signOut();
     router.push('/login');
@@ -40,15 +45,32 @@ export function Header({ user }: { user: HeaderUser }) {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         {/* ロゴ */}
-        <div className="flex items-center gap-2.5">
-          <AppIcon size={28} className={currentAccent.text} />
-          <span className="font-sans text-base font-medium tracking-wider text-foreground">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <AppIcon size={28} className={cn('shrink-0', currentAccent.text)} />
+          <span className="font-sans text-base font-medium tracking-wider text-foreground hidden sm:inline">
             思い出帳
           </span>
+          {/* 現在のグループバッジ */}
+          {activeGroup && (
+            <Link
+              href="/settings"
+              aria-label={`現在のグループ: ${activeGroup.name}`}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium font-sans',
+                'border transition-colors duration-150 max-w-[140px] truncate',
+                currentAccent.bgLight,
+                currentAccent.text,
+                'border-transparent hover:opacity-75'
+              )}
+            >
+              <Users size={11} className="shrink-0" />
+              <span className="truncate">{activeGroup.name}</span>
+            </Link>
+          )}
         </div>
 
         {/* 右側メニュー */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* テーマカラー選択 */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -93,7 +115,20 @@ export function Header({ user }: { user: HeaderUser }) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* ユーザーアバター + ログアウト */}
+          {/* 設定ボタン（明示的に配置） */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            aria-label="設定"
+            asChild
+          >
+            <Link href="/settings">
+              <Settings size={16} />
+            </Link>
+          </Button>
+
+          {/* ユーザーアバター + ドロップダウン */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -111,7 +146,7 @@ export function Header({ user }: { user: HeaderUser }) {
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuLabel className="text-xs font-normal py-1.5">
                 <div className="font-medium text-foreground truncate">
                   {user.name}
@@ -120,6 +155,13 @@ export function Header({ user }: { user: HeaderUser }) {
                   {user.email}
                 </div>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="flex items-center gap-2 cursor-pointer">
+                <Link href="/settings">
+                  <Settings size={14} />
+                  <span>設定</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={handleSignOut}

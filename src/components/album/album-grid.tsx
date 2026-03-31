@@ -3,8 +3,9 @@
 import { AlbumCard } from '@/components/album/album-card';
 import { Album } from '@/db/schema';
 import { type AccentColor, ACCENT_COLORS } from '@/lib/data';
+import { MOCK_GROUPS } from '@/lib/settings-data';
 import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 
 interface AlbumGridProps {
   albums: Album[];
@@ -20,6 +21,7 @@ export function AlbumGrid({
   onCreateClick,
 }: AlbumGridProps) {
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
+  const activeGroup = MOCK_GROUPS[0];
 
   const personalCount = albums.filter((a) => a.type === 'personal').length;
   const familyCount = albums.filter((a) => a.type === 'family').length;
@@ -28,9 +30,24 @@ export function AlbumGrid({
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {/* ページタイトル */}
       <div className="mb-7">
-        <h1 className="font-sans text-2xl font-medium text-foreground tracking-wide text-balance">
-          アルバム一覧
-        </h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="font-sans text-2xl font-medium text-foreground tracking-wide text-balance">
+            アルバム一覧
+          </h1>
+          {/* 現在のグループバッジ */}
+          {activeGroup && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium font-sans',
+                accentConfig.bgLight,
+                accentConfig.text
+              )}
+            >
+              <Users size={11} className="shrink-0" />
+              {activeGroup.name}
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
           全{albums.length}冊 ·
           <span className="ml-1">個人{personalCount}冊</span>

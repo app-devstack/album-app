@@ -1,25 +1,9 @@
-import { Header } from '@/components/layout/header';
-import { auth } from '@/lib/auth/auth';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { AppShell } from '@/components/layout/app-shell';
 
-export default async function AppLayout({
+export default function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect('/login');
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Header user={session.user} />
-      {children}
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

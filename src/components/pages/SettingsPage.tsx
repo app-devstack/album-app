@@ -5,9 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { signOut } from '@/lib/auth/auth-client';
 import { ACCENT_COLORS } from '@/lib/data';
+import { useSession } from '@/lib/auth/auth-client';
 import {
   MOCK_GROUPS,
-  type SettingsAccount,
   type SettingsGroup,
 } from '@/lib/settings-data';
 import { cn } from '@/lib/utils';
@@ -179,17 +179,22 @@ function GroupRow({ group, accentConfig }: GroupRowProps) {
 // ============================================================
 
 interface SettingsPageProps {
-  account: SettingsAccount;
   groups?: SettingsGroup[];
 }
 
 export function SettingsPageContent({
-  account,
   groups = MOCK_GROUPS,
 }: SettingsPageProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const accent = useAccentStore((state) => state.accent);
   const accentConfig = ACCENT_COLORS.find((c) => c.id === accent) ?? ACCENT_COLORS[0];
+
+  const account = {
+    name: session?.user?.name ?? 'ゲスト',
+    email: session?.user?.email ?? '',
+    image: session?.user?.image ?? null,
+  };
 
   const initial = account.name?.charAt(0)?.toUpperCase() ?? '?';
 
