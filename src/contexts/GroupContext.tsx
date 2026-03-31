@@ -1,10 +1,14 @@
 'use client';
 
+import { Group } from '@/db/schema';
+import { useGroup } from '@/hooks/fetchers/use-groups';
+import { DefaultError, UseQueryResult } from '@tanstack/react-query';
 import { createContext, ReactNode, useContext, useState } from 'react';
 
 type GroupContextType = {
   currentGroupId: string;
   setCurrentGroupId: (groupId: string) => void;
+  currentGroup: UseQueryResult<Group, DefaultError>;
 };
 
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
@@ -17,6 +21,7 @@ export function GroupProvider({
   initialGroupId: string;
 }) {
   const [currentGroupId, setGroupIdState] = useState<string>(initialGroupId);
+  const currentGroup = useGroup(currentGroupId);
 
   const setCurrentGroupId = (groupId: string) => {
     if (groupId) {
@@ -28,7 +33,13 @@ export function GroupProvider({
   };
 
   return (
-    <GroupContext.Provider value={{ currentGroupId, setCurrentGroupId }}>
+    <GroupContext.Provider
+      value={{
+        currentGroupId,
+        setCurrentGroupId,
+        currentGroup,
+      }}
+    >
       {children}
     </GroupContext.Provider>
   );
