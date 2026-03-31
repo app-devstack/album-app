@@ -7,6 +7,10 @@ import { and, eq } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
+const updateGroupSchema = z.object({
+  name: z.string().min(1),
+});
+
 const createGroupSchema = z.object({
   name: z.string().min(1),
   coverUrl: z.string().optional(),
@@ -64,6 +68,89 @@ export const groupsRouter = router
       .run();
 
     return c.json(newGroup, 201);
+  })
+  /**
+   * GET /api/groups/:groupId
+   * 指定グループの情報を返す
+   */
+  .get('/:groupId', async (c) => {
+    const groupId = c.req.param('groupId');
+    const session = await getSession(c.req.raw.headers);
+    if (!session?.user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const member = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.userId, session.user.id)
+      ),
+      with: { group: true },
+    });
+
+    if (!member) return c.json({ error: 'Not found' }, 404);
+
+    return c.json({ ...member.group, role: member.role });
+  })
+  /**
+   * PATCH /api/groups/:groupId
+   * グループ名を更新する（ownerのみ）
+   */
+  .patch('/:groupId', zValidator('json', updateGroupSchema), async (c) => {
+    const groupId = c.req.param('groupId');
+    const session = await getSession(c.req.raw.headers);
+    if (!session?.user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const member = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.userId, session.user.id)
+      ),
+    });
+
+    if (!member) return c.json({ error: 'Not found' }, 404);
+    if (member.role !== 'owner') return c.json({ error: 'Forbidden' }, 403);
+
+    const { name } = c.req.valid('json');
+    await db
+      .update(groups)
+      .set({ name, updatedAt: new Date().toISOString() })
+      .where(eq(groups.id, groupId))
+      .run();
+
+    return c.json({ id: groupId, name });
+  })
+  /**
+   * GET /api/groups/:groupId/members
+   * グループメンバー一覧をユーザー情報付きで返す
+   */
+  .get('/:groupId/members', async (c) => {
+    const groupId = c.req.param('groupId');
+    const session = await getSession(c.req.raw.headers);
+    if (!session?.user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const isMember = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.userId, session.user.id)
+      ),
+    });
+
+    if (!isMember) return c.json({ error: 'Not found' }, 404);
+
+    const members = await db.query.groupMembers.findMany({
+      where: eq(groupMembers.groupId, groupId),
+      with: { user: true },
+    });
+
+    return c.json(
+      members.map((m) => ({
+        userId: m.userId,
+        role: m.role,
+        joinedAt: m.joinedAt,
+        name: m.user.name,
+        email: m.user.email,
+        image: m.user.image,
+      }))
+    );
   })
   /**
    * GET /api/groups/:groupId/invite-token
