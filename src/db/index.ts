@@ -1,7 +1,7 @@
-import { env } from 'cloudflare:workers';
+// import { env } from 'cloudflare:workers';
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from './schema';
 
-const db = drizzle(env.DB, { schema });
+const db = drizzle({}, { schema });
 
 export default db;
