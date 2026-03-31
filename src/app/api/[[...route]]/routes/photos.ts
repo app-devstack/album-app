@@ -2,6 +2,7 @@ import { R2_CUSTOM_ENDPOINT } from '@/constants';
 import db from '@/db';
 import { photos } from '@/db/schema';
 import { createApp } from '@/lib/api';
+import { getAcceptFormat } from '@/lib/photo/utils';
 import { r2Manager } from '@/lib/r2';
 import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
@@ -35,11 +36,9 @@ export const photosRouter = router
     const photoId = c.req.param('photoId');
     const mode = c.req.query('mode') || 'thumb'; // 'thumb' or 'full'
 
-    const photoData = await db
-      .select()
-      .from(photos)
-      .where(eq(photos.id, photoId))
-      .get();
+    const photoData = await db.query.photos.findFirst({
+      where: eq(photos.id, photoId),
+    });
 
     if (!photoData || !photoData.url) {
       return c.json({ error: 'Photo not found' }, 404);
@@ -47,19 +46,26 @@ export const photosRouter = router
 
     const isThumb = mode === 'thumb';
 
+    const accept = c.req.header('Accept') ?? '';
+    const format = getAcceptFormat(accept);
+
     const imageOptions = {
       width: isThumb ? 400 : 1920,
       height: isThumb ? 400 : undefined,
       fit: isThumb ? 'cover' : 'scale-down',
       quality: isThumb ? 75 : 85,
-      format: 'auto',
-    };
+      format, // 'avif' | 'webp' | 'jpeg' | 'png' | 'svg' | undefined
+    } satisfies RequestInitCfPropertiesImage;
 
     const sourceUrl = photoData.thumbnailUrl || photoData.url;
 
     try {
       // Cloudflare Image Resizing を適用して fetch
-      const response = await fetch(sourceUrl, { cf: imageOptions });
+      const response = await fetch(sourceUrl, {
+        cf: {
+          image: imageOptions,
+        },
+      });
 
       if (!response.ok) {
         console.error(`Failed to fetch source image: ${response.status}`);
