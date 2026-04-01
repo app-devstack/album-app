@@ -72,7 +72,7 @@ function HeaderBrand({ currentAccent }: HeaderBrandProps) {
   return (
     <div className="relative flex items-center gap-2.5">
       <AppIcon size={28} className={currentAccent.text} />
-      <span className="font-sans text-base font-medium tracking-wider text-foreground">
+      <span className="hidden font-sans text-base font-medium tracking-wider text-foreground sm:inline">
         思い出帳
       </span>
 
