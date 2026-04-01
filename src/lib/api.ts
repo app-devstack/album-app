@@ -34,11 +34,11 @@ export const createApp = () => new Hono<{ Bindings: Bindings }>();
  * APIクライアントの生成
  */
 const client = hc<AppType>('/', {
-  // init: {
-  //   credentials: 'include',
-  //   mode: 'cors',
-  //   cache: 'no-store',
-  // },
+  fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+    fetch(input, {
+      ...init,
+      credentials: 'include', // クッキーを含める
+    }),
 });
 
 /**
