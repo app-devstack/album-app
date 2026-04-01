@@ -57,7 +57,7 @@ export function SettingsThemeColorSelect() {
         </DropdownMenuTrigger>
       </div>
 
-      <DropdownMenuContent align="start" className="w-40">
+      <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuLabel className="py-1.5 text-xs font-normal text-muted-foreground">
           テーマカラー
         </DropdownMenuLabel>

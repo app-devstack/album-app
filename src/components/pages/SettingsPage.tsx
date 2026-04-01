@@ -5,13 +5,17 @@ import SettingsAccountInfo from '@/components/settings/settings-account-info';
 import { SettingsSectionHeader } from '@/components/settings/settings-section-header';
 import { SettingsThemeColorSelect } from '@/components/settings/settings-theme-color-select';
 import { Loading } from '@/components/ui/loading';
+import { Separator } from '@/components/ui/separator';
+import { useGroupContext } from '@/contexts/GroupContext';
 import { signOut, useSession } from '@/lib/auth/auth-client';
-import { Bell, FileText, LogOut, Shield } from 'lucide-react';
+import { Bell, FileText, LogOut, Shield, UsersIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function SettingsPage() {
   const { data, isPending } = useSession();
   const account = data?.user ?? null;
+
+  const { currentGroupId } = useGroupContext();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -30,7 +34,33 @@ export function SettingsPage() {
           </h1>
         </div>
 
-        <SettingsAccountInfo account={account} />
+        <section aria-labelledby="section-account">
+          <SettingsSectionHeader label="アカウント" />
+
+          <div className="flex flex-col gap-2">
+            <SettingsAccountInfo account={account} />
+            <NavigateRow
+              icon={<LogOut size={16} />}
+              label="ログアウト"
+              description={account?.email}
+              destructive
+              onClick={handleSignOut}
+              trailing={null}
+            />
+          </div>
+        </section>
+
+        <section aria-labelledby="section-groups-label">
+          <SettingsSectionHeader label="グループ" />
+          <NavigateRow
+            icon={<UsersIcon size={16} />}
+            label="グループ設定"
+            description="グループの管理やグループの切り替え"
+            href={`/groups/${currentGroupId}/setting`}
+          />
+        </section>
+
+        <Separator />
 
         <section aria-labelledby="section-appearance-label">
           <SettingsSectionHeader label="表示" />
@@ -59,20 +89,6 @@ export function SettingsPage() {
               label="アプリからのお知らせ"
               description="リリースやメンテナンスなどのお知らせ"
               href="/settings/announcements"
-            />
-          </div>
-        </section>
-
-        <section aria-labelledby="section-actions-label">
-          <SettingsSectionHeader label="アカウント操作" />
-          <div className="flex flex-col gap-2">
-            <NavigateRow
-              icon={<LogOut size={16} />}
-              label="ログアウト"
-              description={account?.email}
-              destructive
-              onClick={handleSignOut}
-              trailing={null}
             />
           </div>
         </section>
