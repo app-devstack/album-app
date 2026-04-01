@@ -9,12 +9,13 @@
     "lint": "eslint .",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "dev:vinext": "vite dev --port 3001",
-    "build:vinext": "vite build",
-    "deploy:vinext": "npx vinext deploy",
+    "build:vinext": "dotenv -c production -- vite build",
+    "deploy:vinext": "dotenv -c production -- vinext deploy",
     "type-check": "tsc --noEmit",
     "secrets:upload": "sh scripts/upload-secrets.sh",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": " wrangler d1 migrations apply album-app-db"
+    "db:migrate": "wrangler d1 migrations apply album-app-db",
+    "db:migrate:remote": "wrangler d1 migrations apply album-app-db --remote"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1016.0",
@@ -89,6 +90,7 @@
     "@types/uuid": "^11.0.0",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitejs/plugin-rsc": "^0.5.21",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "postcss": "^8.5",
     "react-server-dom-webpack": "^19.2.4",
