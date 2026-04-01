@@ -9,16 +9,17 @@ import {
   useUpdateAlbum,
 } from '@/hooks/fetchers/use-albums';
 import { useAccentStore } from '@/stores/themeStore';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
-export default function AlbumDetailPage() {
-  const params = useParams();
+type AlbumDetailPageProps = {
+  albumId: string;
+};
+
+export default function AlbumDetailPage({ albumId }: AlbumDetailPageProps) {
   const router = useRouter();
-  const albumId = params.albumId as string;
-
   const accent = useAccentStore((state) => state.accent);
   const { currentGroupId } = useGroupContext();
-  const { data: album, isLoading, isError } = useAlbum(albumId);
+  const { data: album, isPending, isError, error } = useAlbum(albumId);
   const { mutateAsync: updateAlbumMutation } = useUpdateAlbum(currentGroupId);
   const { mutateAsync: deleteAlbumMutation } = useDeleteAlbum(currentGroupId);
 
@@ -37,9 +38,17 @@ export default function AlbumDetailPage() {
     router.push('/albums');
   };
 
-  if (isLoading) return <div>Loading album...</div>;
-  if (isError) return <div>Error .</div>;
-  // if (!album) return <div>Error album.</div>;
+  if (isPending) return <div>Loading album...</div>;
+  if (isError) {
+    return (
+      <div className="p-4 text-center text-destructive">
+        <p>アルバムの読み込みに失敗しました。</p>
+        {error?.message ? (
+          <p className="mt-1 text-xs opacity-80">{error.message}</p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
