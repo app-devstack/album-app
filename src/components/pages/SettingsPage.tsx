@@ -3,7 +3,7 @@
 import { NavigateRow } from '@/components/common/navigate-row';
 import SettingsAccountInfo from '@/components/settings/settings-account-info';
 import { SettingsSectionHeader } from '@/components/settings/settings-section-header';
-import { SettingsThemeColorButtons } from '@/components/settings/settings-theme-color-buttons';
+import { SettingsThemeColorSelect } from '@/components/settings/settings-theme-color-select';
 import { Loading } from '@/components/ui/loading';
 import { signOut, useSession } from '@/lib/auth/auth-client';
 import { Bell, FileText, LogOut, Palette, Shield } from 'lucide-react';
@@ -39,7 +39,7 @@ export function SettingsPage() {
               <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-muted text-muted-foreground">
                 <Palette size={16} aria-hidden />
               </span>
-              <div className="flex-1 min-w-0 space-y-3">
+              <div className="flex-1 min-w-0 space-y-2">
                 <div>
                   <p className="text-sm font-medium font-sans text-foreground">
                     テーマカラー
@@ -48,7 +48,7 @@ export function SettingsPage() {
                     ボタンやアクセントの色を選べます
                   </p>
                 </div>
-                <SettingsThemeColorButtons />
+                <SettingsThemeColorSelect />
               </div>
             </div>
           </div>
