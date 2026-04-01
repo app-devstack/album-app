@@ -208,6 +208,10 @@ export const groupInviteTokensRelations = relations(
       fields: [groupInviteTokens.groupId],
       references: [groups.id],
     }),
+    inviter: one(users, {
+      fields: [groupInviteTokens.createdBy],
+      references: [users.id],
+    }),
   })
 );
 

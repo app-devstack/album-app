@@ -19,7 +19,7 @@ export const joinRouter = router
 
     const tokenRecord = await db.query.groupInviteTokens.findFirst({
       where: eq(groupInviteTokens.token, token),
-      with: { group: true },
+      with: { group: true, inviter: true },
     });
 
     if (!tokenRecord) {
@@ -56,11 +56,16 @@ export const joinRouter = router
     // グループのカバーは albums の coverUrl から先頭を使う（未設定なら空文字）
     const coverUrl = groupAlbums.find((a) => a.coverUrl)?.coverUrl || '';
 
+    const inviter = tokenRecord.inviter;
+
     return c.json({
       groupId: group.id,
       name: group.name,
       coverUrl,
-      createdBy: group.createdBy,
+      inviter: {
+        name: inviter?.name ?? 'ユーザー',
+        image: inviter?.image ?? null,
+      },
       createdAt: group.createdAt,
       photoCount,
       albumCount,

@@ -9,7 +9,7 @@ export type GroupJoinInfo = {
   groupId: string;
   name: string;
   coverUrl: string;
-  createdBy: string;
+  inviter: { name: string; image: string | null };
   createdAt: string;
   photoCount: number;
   albumCount: number;

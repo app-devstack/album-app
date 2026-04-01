@@ -31,7 +31,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
   const LOADING_GROUP = {
     name: '読み込み中...',
     coverUrl: '/img/album-app-join-cover-img.jpg',
-    createdBy: '...',
+    inviter: { name: '…', image: null as string | null },
     photoCount: 0,
     memberCount: 0,
     createdAt: new Date().toISOString(),
@@ -92,10 +92,28 @@ export function GroupJoin({ token }: GroupJoinProps) {
           {/* ボディ */}
           <div className="px-6 pt-5 pb-6 flex flex-col gap-5">
             {/* 招待メッセージ */}
-            <p className="text-sm text-login-fg font-sans text-center leading-relaxed">
-              <span className="font-semibold">{displayGroup.createdBy}</span>
-              {'さんがあなたをこのグループに招待しました。'}
-            </p>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-login-fg font-sans text-left leading-relaxed text-balance">
+                  <span className="font-semibold">
+                    {displayGroup.inviter.name}
+                  </span>
+                  さんが
+                  <br />
+                  あなたをこのグループに招待しました。
+                </p>
+
+                <Avatar className=" shrink-0 border ring-login-border">
+                  <AvatarImage
+                    src={displayGroup.inviter.image ?? undefined}
+                    alt=""
+                  />
+                  <AvatarFallback className="text-xs font-medium bg-login-bg text-login-accent border border-login-border">
+                    {displayGroup.inviter.name.slice(0, 1)}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
 
             <div className="h-px bg-login-border" />
 
