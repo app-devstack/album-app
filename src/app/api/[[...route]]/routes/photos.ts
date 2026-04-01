@@ -25,7 +25,7 @@ const uploadUrlSchema = z.object({
 });
 
 const createPhotoSchema = z.object({
-  thumbnailUrl: z.string().url().nullable().optional(),
+  thumbnailUrl: z.url().nullable().optional(),
   alt: z.string().default(''),
   caption: z.string().nullable().optional(),
   mediaType: z.enum(['image', 'video']).default('image'),

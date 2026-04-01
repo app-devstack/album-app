@@ -1,10 +1,10 @@
 import db from '@/db';
-import { albums, groupMembers, NewAlbum } from '@/db/schema';
+import { albums, groupMembers, NewAlbum, photos } from '@/db/schema';
 import { createApp } from '@/lib/api';
 import { getAlbumById, getAllAlbums } from '@/lib/service/albums';
 import { getSession } from '@/lib/service/auth';
 import { zValidator } from '@hono/zod-validator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
@@ -23,6 +23,7 @@ const updateAlbumSchema = z.object({
   memberAvatar: z.string().nullable().optional(),
   sharedWith: z.array(z.string()).nullable().optional(),
   location: z.string().nullable().optional(),
+  coverUrl: z.union([z.literal(''), z.url()]).optional(),
 });
 
 export type CreateAlbumSchema = z.infer<typeof createAlbumSchema>;
@@ -93,6 +94,28 @@ export const albumsRouter = router
   .put('/:id', zValidator('json', updateAlbumSchema), async (c) => {
     const id = c.req.param('id');
     const body = c.req.valid('json');
+
+    if (body.coverUrl !== undefined && body.coverUrl !== '') {
+      const match = await db.query.photos.findFirst({
+        where: and(
+          eq(photos.albumId, id),
+          or(
+            eq(photos.url, body.coverUrl),
+            eq(photos.thumbnailUrl, body.coverUrl)
+          )
+        ),
+      });
+      if (!match) {
+        return c.json(
+          {
+            error:
+              'coverUrl must match url or thumbnailUrl of a photo in this album',
+          },
+          400
+        );
+      }
+    }
+
     const result = await db
       .update(albums)
       .set({ ...body, updatedAt: new Date().toISOString() })

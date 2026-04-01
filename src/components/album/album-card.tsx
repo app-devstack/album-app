@@ -1,6 +1,7 @@
 'use client';
 
 import { Album, Photo } from '@/db/schema';
+import { albumCoverImageSrc } from '@/lib/album-cover';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,7 @@ interface AlbumCardProps {
 
 export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
+  const coverSrc = albumCoverImageSrc(album);
 
   return (
     <button
@@ -23,10 +25,9 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
     >
       {/* カバー画像 */}
       <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-muted">
-        {album.latestPhoto && (
+        {coverSrc && (
           <img
-            // src={album.latestPhoto.thumbnailUrl || album.latestPhoto.url}
-            src={`/api/photos/${album.latestPhoto.id}/optimized?mode=thumb`}
+            src={coverSrc}
             alt={`${album.title}のカバー`}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             crossOrigin="anonymous"

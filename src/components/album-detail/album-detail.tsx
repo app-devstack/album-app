@@ -15,6 +15,7 @@ import {
   useDeletePhoto,
   usePhotos,
 } from '@/hooks/fetchers/use-photos';
+import { albumCoverImageSrc, photoUrlForAlbumCover } from '@/lib/album-cover';
 import {
   ACCENT_COLORS,
   type AccentColor,
@@ -61,7 +62,7 @@ function formatDuration(secs: number): string {
 }
 
 interface AlbumCoverProps {
-  latestPhoto?: Photo | null;
+  coverImageSrc: string | null;
   title: string;
   location?: string | null;
   createdAt: string;
@@ -70,7 +71,7 @@ interface AlbumCoverProps {
 }
 
 function AlbumCover({
-  latestPhoto,
+  coverImageSrc,
   title,
   location,
   createdAt,
@@ -79,9 +80,9 @@ function AlbumCover({
 }: AlbumCoverProps) {
   return (
     <div className="relative w-full h-44 sm:h-60 rounded-2xl overflow-hidden bg-muted">
-      {latestPhoto && (
+      {coverImageSrc && (
         <img
-          src={`/api/photos/${latestPhoto.id}/optimized?mode=thumb`}
+          src={coverImageSrc}
           alt={`${title}のカバー`}
           className="w-full h-full object-cover"
           crossOrigin="anonymous"
@@ -227,6 +228,8 @@ export function AlbumDetail({
   const imageCount = photos.filter((p) => p.mediaType === 'image').length;
   const videoCount = photos.filter((p) => p.mediaType === 'video').length;
 
+  const coverImageSrc = albumCoverImageSrc(album);
+
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -299,7 +302,7 @@ export function AlbumDetail({
       </div>
 
       <AlbumCover
-        latestPhoto={album.latestPhoto}
+        coverImageSrc={coverImageSrc}
         title={album.title}
         location={album.location}
         createdAt={album.createdAt}
@@ -372,6 +375,12 @@ export function AlbumDetail({
         editTitle={editTitle}
         onEditTitleChange={setEditTitle}
         onSave={handleSaveSettings}
+        photos={photos}
+        albumCoverUrl={album.coverUrl}
+        onSetCoverUrl={async (coverUrl: string) => {
+          await onAlbumUpdate({ id: album.id, coverUrl });
+        }}
+        photoUrlForCover={photoUrlForAlbumCover}
         onDelete={async () => {
           if (confirm('このアルバムを削除してもよろしいですか？')) {
             await onAlbumDelete(album.id);
