@@ -6,7 +6,7 @@ import { SettingsSectionHeader } from '@/components/settings/settings-section-he
 import { SettingsThemeColorSelect } from '@/components/settings/settings-theme-color-select';
 import { Loading } from '@/components/ui/loading';
 import { signOut, useSession } from '@/lib/auth/auth-client';
-import { Bell, FileText, LogOut, Palette, Shield } from 'lucide-react';
+import { Bell, FileText, LogOut, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function SettingsPage() {
@@ -35,22 +35,7 @@ export function SettingsPage() {
         <section aria-labelledby="section-appearance-label">
           <SettingsSectionHeader label="表示" />
           <div className="flex flex-col gap-3" id="section-appearance-label">
-            <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-card border border-border">
-              <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-muted text-muted-foreground">
-                <Palette size={16} aria-hidden />
-              </span>
-              <div className="flex-1 min-w-0 space-y-2">
-                <div>
-                  <p className="text-sm font-medium font-sans text-foreground">
-                    テーマカラー
-                  </p>
-                  <p className="text-xs text-muted-foreground font-sans mt-0.5">
-                    ボタンやアクセントの色を選べます
-                  </p>
-                </div>
-                <SettingsThemeColorSelect />
-              </div>
-            </div>
+            <SettingsThemeColorSelect />
           </div>
         </section>
 
