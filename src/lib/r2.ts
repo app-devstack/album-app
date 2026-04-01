@@ -25,7 +25,7 @@ const s3Client = new S3Client({
 /**
  * Presigned URL生成の結果
  */
-export interface PresignedUrlResult {
+interface PresignedUrlResult {
   signedUrl: string;
   key: string;
   contentType: string;
@@ -35,7 +35,7 @@ export interface PresignedUrlResult {
 /**
  * R2アップロード処理の結果
  */
-export interface UploadResult {
+interface UploadResult {
   success: boolean;
   key: string;
 }
@@ -43,7 +43,7 @@ export interface UploadResult {
 /**
  * R2からのオブジェクト取得結果
  */
-export interface GetObjectResult {
+interface GetObjectResult {
   body: ArrayBuffer;
   contentType: string;
   cacheControl: string;
@@ -53,7 +53,7 @@ export interface GetObjectResult {
 /**
  * ファイルサイズ検証の結果
  */
-export interface ValidateFileSizeResult {
+interface ValidateFileSizeResult {
   valid: boolean;
   maxSize?: number;
 }
@@ -262,4 +262,3 @@ class R2Manager {
  * R2Managerのシングルトンインスタンス
  */
 export const r2Manager = new R2Manager();
-export default r2Manager;
