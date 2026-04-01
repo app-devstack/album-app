@@ -16,6 +16,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply album-app-db",
     "db:migrate:remote": "wrangler d1 migrations apply album-app-db --remote",
+    "db:seed:dev": "tsx scripts/seed-dev-user.ts",
     "knip": "knip --include exports,types"
   },
   "dependencies": {
