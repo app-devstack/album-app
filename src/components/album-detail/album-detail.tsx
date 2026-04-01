@@ -367,6 +367,10 @@ export function AlbumDetail({
       <AlbumDetailLightboxDialog
         item={lightboxItem}
         onClose={() => setLightboxItem(null)}
+        onDelete={async () => {
+          if (!lightboxItem) return;
+          await handleDeletePhoto(lightboxItem.id);
+        }}
       />
 
       <AlbumDetailSettingsDialog
