@@ -5,7 +5,7 @@ export const joinKeys = {
   info: (token: string) => ['join', token] as const,
 };
 
-export type GroupJoinInfo = {
+type GroupJoinInfo = {
   groupId: string;
   name: string;
   coverUrl: string;
@@ -16,16 +16,11 @@ export type GroupJoinInfo = {
   memberCount: number;
 };
 
-export type JoinError = {
-  status: number;
-  error: 'not_found' | 'expired';
-};
-
 const getJoinInfo = async (token: string): Promise<GroupJoinInfo> => {
   const res = await api.join[':token'].$get({ param: { token } });
   if (res.status === 404 || res.status === 410) {
     const body = (await res.json()) as { error: string };
-    throw { status: res.status, error: body.error } as JoinError;
+    throw { status: res.status, error: body.error };
   }
   if (!res.ok) throw new Error('Failed to fetch join info');
   return res.json() as Promise<GroupJoinInfo>;
