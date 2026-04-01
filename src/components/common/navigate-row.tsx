@@ -2,7 +2,10 @@ import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
-export interface SettingsRowProps {
+/**
+ * {@link NavigateRow} に渡すプロパティ。
+ */
+interface NavigateRowProps {
   icon: React.ReactNode;
   label: string;
   description?: string;
@@ -14,7 +17,10 @@ export interface SettingsRowProps {
   disabled?: boolean;
 }
 
-export function SettingsRow({
+/**
+ * ナビゲーション用
+ */
+export function NavigateRow({
   icon,
   label,
   description,
@@ -23,7 +29,7 @@ export function SettingsRow({
   destructive,
   trailing,
   disabled,
-}: SettingsRowProps) {
+}: NavigateRowProps) {
   const base = cn(
     'flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors duration-150',
     'bg-card border border-border',

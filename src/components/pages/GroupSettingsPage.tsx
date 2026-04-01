@@ -1,5 +1,6 @@
 'use client';
 
+import { NavigateRow } from '@/components/common/navigate-row';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,8 +27,7 @@ import {
   useUpdateMemberRole,
 } from '@/hooks/fetchers/use-groups';
 import { groupRoleLabelJa, isGroupAdmin } from '@/lib/group-role';
-import { ArrowLeft, Pencil, UserPlus, UserRound } from 'lucide-react';
-import Link from 'next/link';
+import { ArrowLeft, Pencil, UserPlus, UserRoundIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -85,32 +85,6 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
                 グループ設定
               </h1>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2 pl-11">
-            <Button
-              variant="outline"
-              size="sm"
-              className="font-sans gap-1.5"
-              asChild
-            >
-              <Link href="/">
-                <UserRound className="size-3.5 opacity-70" />
-                グループを切り替え
-              </Link>
-            </Button>
-            {canManageGroup && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-sans gap-1.5"
-                asChild
-              >
-                <Link href={`/groups/${groupId}/invite`}>
-                  <UserPlus className="size-3.5 opacity-70" />
-                  グループに招待
-                </Link>
-              </Button>
-            )}
           </div>
         </div>
 
@@ -237,6 +211,30 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
                 メンバーがいません
               </p>
             )}
+          </div>
+
+          {canManageGroup && (
+            <NavigateRow
+              icon={<UserPlus size={16} />}
+              label="グループに招待"
+              description="招待リンクを発行してメンバーを追加"
+              href={`/groups/${groupId}/invite`}
+            />
+          )}
+        </section>
+
+        {/* その他 */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            その他
+          </h2>
+          <div className="flex flex-col gap-2">
+            <NavigateRow
+              icon={<UserRoundIcon size={16} />}
+              label="グループを切り替え"
+              description="所属しているグループを選び直す"
+              href="/"
+            />
           </div>
         </section>
       </div>

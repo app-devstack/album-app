@@ -1,7 +1,7 @@
 'use client';
 
+import { NavigateRow } from '@/components/common/navigate-row';
 import SettingsAccountInfo from '@/components/settings/settings-account-info';
-import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSectionHeader } from '@/components/settings/settings-section-header';
 import { SettingsThemeColorButtons } from '@/components/settings/settings-theme-color-buttons';
 import { Loading } from '@/components/ui/loading';
@@ -57,19 +57,19 @@ export function SettingsPage() {
         <section aria-labelledby="section-info-label">
           <SettingsSectionHeader label="アプリ情報" />
           <div className="flex flex-col gap-2" id="section-info-label">
-            <SettingsRow
+            <NavigateRow
               icon={<Shield size={16} />}
               label="プライバシーポリシー"
               description="個人情報の取り扱いについて"
               href="/settings/privacy"
             />
-            <SettingsRow
+            <NavigateRow
               icon={<FileText size={16} />}
               label="利用規約"
               description="サービス利用にあたっての条件"
               href="/settings/terms"
             />
-            <SettingsRow
+            <NavigateRow
               icon={<Bell size={16} />}
               label="アプリからのお知らせ"
               description="リリースやメンテナンスなどのお知らせ"
@@ -81,7 +81,7 @@ export function SettingsPage() {
         <section aria-labelledby="section-actions-label">
           <SettingsSectionHeader label="アカウント操作" />
           <div className="flex flex-col gap-2">
-            <SettingsRow
+            <NavigateRow
               icon={<LogOut size={16} />}
               label="ログアウト"
               description={account?.email}
