@@ -1,10 +1,18 @@
-import { R2_CUSTOM_ENDPOINT } from '@/constants';
 import db from '@/db';
 import { photos } from '@/db/schema';
 import { createApp } from '@/lib/api';
+import {
+  buildAlbumUploadBufferUrl,
+  decodeKeyFromLocalObjectPathname,
+  deleteStoredObject,
+  enableLocalUploading,
+  isServeableObjectKey,
+  r2Manager,
+  resolveObjectPublicUrl,
+} from '@/lib/media-storage';
 import { getAcceptFormat } from '@/lib/photo/utils';
-import { r2Manager } from '@/lib/r2';
 import { zValidator } from '@hono/zod-validator';
+import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
@@ -28,10 +36,33 @@ const createPhotoSchema = z.object({
 export type UploadUrlRequest = z.infer<typeof uploadUrlSchema>;
 export type CreatePhotoRequest = z.infer<typeof createPhotoSchema>;
 
+function assertAlbumObjectKey(albumId: string, key: string): boolean {
+  const prefix = `albums/${albumId}/`;
+  return key.startsWith(prefix);
+}
+
 // Photos Router
 const router = createApp();
 
 export const photosRouter = router
+  .get('/local-object/*', async (c) => {
+    const pathname = new URL(c.req.url).pathname;
+    const key = decodeKeyFromLocalObjectPathname(pathname);
+    if (!key || !isServeableObjectKey(key)) {
+      return c.json({ error: 'Not found' }, 404);
+    }
+    try {
+      const obj = await r2Manager.getObject(env.R2, key);
+      return new Response(obj.body, {
+        headers: {
+          'Content-Type': obj.contentType,
+          'Cache-Control': obj.cacheControl || 'public, max-age=3600',
+        },
+      });
+    } catch {
+      return c.json({ error: 'Not found' }, 404);
+    }
+  })
   .get('/:photoId/optimized', async (c) => {
     const photoId = c.req.param('photoId');
     const mode = c.req.query('mode') || 'thumb'; // 'thumb' or 'full'
@@ -132,7 +163,18 @@ export const photosRouter = router
         // 一意なキーを生成
         const key = r2Manager.generateAlbumKey(albumId, filename);
 
-        // Presigned URLを生成
+        if (enableLocalUploading(env)) {
+          const signedUrl = buildAlbumUploadBufferUrl(c.req.url, albumId, key);
+          const expiresIn = 3600;
+          return c.json({
+            signedUrl,
+            key,
+            contentType,
+            expiresIn,
+            message: 'Presigned URLを生成しました(Local Upload)',
+          });
+        }
+
         const result = await r2Manager.createPresignedUrl(key, contentType);
 
         return c.json({
@@ -151,14 +193,33 @@ export const photosRouter = router
       }
     }
   )
-  .put('/album/:albumId/upload-direct', async (c) => {
+  .put('/album/:albumId/upload-buffer', async (c) => {
     try {
       const albumId = c.req.param('albumId');
+      const key = c.req.query('key')?.trim();
+      if (!key) {
+        return c.json({ error: 'key クエリが必要です' }, 400);
+      }
+
+      if (!assertAlbumObjectKey(albumId, key)) {
+        return c.json({ error: '無効なオブジェクトキーです' }, 400);
+      }
+
       const contentType =
         c.req.header('Content-Type') || 'application/octet-stream';
+
+      if (!r2Manager.validateFileType(contentType)) {
+        return c.json(
+          {
+            error: 'ファイルタイプが許可されていません',
+            allowedTypes: Array.from(r2Manager.allowedMimeTypes),
+          },
+          400
+        );
+      }
+
       const body = await c.req.arrayBuffer();
 
-      // ファイルサイズの検証
       const sizeValidation = r2Manager.validateFileSize(
         body.byteLength,
         contentType
@@ -172,22 +233,17 @@ export const photosRouter = router
         );
       }
 
-      // 一意なキーを生成
-      const filename = c.req.header('X-Filename') || 'file';
-      const key = r2Manager.generateAlbumKey(albumId, filename);
+      const objectTail = key.slice(`albums/${albumId}/`.length);
 
-      // R2にアップロード
-      const result = await r2Manager.upload(c.env.R2, key, body, contentType, {
+      const r2 = env.R2;
+      await r2Manager.upload(r2, key, body, contentType, {
         albumId,
-        originalFilename: filename,
+        originalFilename: objectTail || 'file',
       });
 
-      return c.json({
-        ...result,
-        message: 'ファイルをアップロードしました',
-      });
+      return c.text('', 200);
     } catch (error) {
-      console.error('Direct upload error:', error);
+      console.error('Upload buffer error:', error);
       return c.json(
         {
           error: 'アップロードに失敗しました',
@@ -201,7 +257,7 @@ export const photosRouter = router
     const albumId = c.req.param('albumId');
     const body = c.req.valid('json');
 
-    const url = `${R2_CUSTOM_ENDPOINT}/${body.r2Key}`;
+    const url = resolveObjectPublicUrl(body.r2Key, env);
 
     const newPhoto = {
       id: uuidv7(),
@@ -234,7 +290,7 @@ export const photosRouter = router
       // R2からファイルを削除
       if (photo.r2Key) {
         try {
-          await r2Manager.delete(photo.r2Key);
+          await deleteStoredObject(env.R2, photo.r2Key, env);
         } catch (error) {
           console.error('R2 delete error:', error);
           // R2削除エラーはログに記録するが、DB削除は続行

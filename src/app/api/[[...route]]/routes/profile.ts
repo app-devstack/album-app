@@ -1,6 +1,11 @@
 import { createApp } from '@/lib/api';
-import { r2Manager } from '@/lib/r2';
+import {
+  buildProfileUploadBufferUrl,
+  enableLocalUploading,
+  r2Manager,
+} from '@/lib/media-storage';
 import { zValidator } from '@hono/zod-validator';
+import { env } from 'cloudflare:workers';
 import { z } from 'zod';
 
 // Zod Schemas
@@ -18,6 +23,10 @@ const uploadAvatarSchema = z.object({
     .max(5 * 1024 * 1024, 'ファイルサイズは5MB以内にしてください'),
 });
 
+function assertProfileObjectKey(key: string): boolean {
+  return key.startsWith('profiles/');
+}
+
 // Profile Router
 const router = createApp();
 
@@ -26,10 +35,19 @@ export const profileRouter = router
     try {
       const { filename, contentType } = c.req.valid('json');
 
-      // ユニークなキーを生成
       const key = r2Manager.generateProfileKey(filename);
 
-      // Presigned URLを生成
+      if (enableLocalUploading(env)) {
+        const signedUrl = buildProfileUploadBufferUrl(c.req.url, key);
+        return c.json({
+          signedUrl,
+          key,
+          contentType,
+          expiresIn: 3600,
+          message: 'Presigned URLを生成しました',
+        });
+      }
+
       const result = await r2Manager.createPresignedUrl(key, contentType);
 
       return c.json({
@@ -41,6 +59,52 @@ export const profileRouter = router
       return c.json(
         {
           error: 'アバターアップロードURL生成に失敗しました',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        500
+      );
+    }
+  })
+  .put('/upload-avatar-buffer', async (c) => {
+    try {
+      const key = c.req.query('key')?.trim();
+      if (!key) {
+        return c.json({ error: 'key クエリが必要です' }, 400);
+      }
+      if (!assertProfileObjectKey(key)) {
+        return c.json({ error: '無効なオブジェクトキーです' }, 400);
+      }
+
+      const contentType = c.req.header('Content-Type') || 'image/jpeg';
+      if (
+        contentType !== 'image/jpeg' &&
+        contentType !== 'image/png' &&
+        contentType !== 'image/webp'
+      ) {
+        return c.json({ error: 'jpeg、png、webpのみ許可されています' }, 400);
+      }
+
+      const body = await c.req.arrayBuffer();
+
+      if (body.byteLength > 5 * 1024 * 1024) {
+        return c.json({ error: 'ファイルサイズは5MB以内にしてください' }, 400);
+      }
+
+      const filename = c.req.header('X-Filename') || 'avatar.jpg';
+
+      const result = await r2Manager.upload(env.R2, key, body, contentType, {
+        originalFilename: filename,
+      });
+
+      return c.json({
+        ...result,
+        message: 'アバターをアップロードしました',
+      });
+    } catch (error) {
+      console.error('Avatar upload buffer error:', error);
+      return c.json(
+        {
+          error: 'アップロードに失敗しました',
           message: error instanceof Error ? error.message : 'Unknown error',
         },
         500
@@ -61,7 +125,7 @@ export const profileRouter = router
       const key = r2Manager.generateProfileKey(filename);
 
       // R2にアップロード
-      const result = await r2Manager.upload(c.env.R2, key, body, contentType, {
+      const result = await r2Manager.upload(env.R2, key, body, contentType, {
         originalFilename: filename,
       });
 
