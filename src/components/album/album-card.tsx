@@ -2,6 +2,7 @@
 
 import { Album, Photo } from '@/db/schema';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
+import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import { MapPin, Users } from 'lucide-react';
 
@@ -72,11 +73,7 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
 
             {/* 作成日 */}
             <span className="text-[11px] text-muted-foreground">
-              {new Date(album.createdAt).toLocaleDateString('ja-JP', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
+              {formatJapaneseDate(album.createdAt)}
             </span>
           </div>
         </div>

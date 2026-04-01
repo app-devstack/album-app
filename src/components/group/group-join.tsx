@@ -4,6 +4,7 @@ import { AppTitle } from '@/components/layout/app-title';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useJoinGroup, useJoinInfo } from '@/hooks/fetchers/use-join';
+import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import {
   ArrowRight,
@@ -21,24 +22,27 @@ interface GroupJoinProps {
 
 type JoinState = 'idle' | 'loading' | 'joined';
 
-// ローディング中に表示するフォールバック値
-const LOADING_GROUP = {
-  name: '読み込み中...',
-  coverUrl:
-    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&q=80',
-  createdBy: '...',
-  photoCount: 0,
-  memberCount: 0,
-  createdAt: '',
-};
-
 export function GroupJoin({ token }: GroupJoinProps) {
   const router = useRouter();
   const { data: group } = useJoinInfo(token);
   const { mutateAsync: joinGroup } = useJoinGroup();
   const [joinState, setJoinState] = useState<JoinState>('idle');
 
+  const LOADING_GROUP = {
+    name: '読み込み中...',
+    coverUrl: '/img/album-app-join-cover-img.jpg',
+    createdBy: '...',
+    photoCount: 0,
+    memberCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+
   const displayGroup = group ?? LOADING_GROUP;
+
+  const createdAtDisplay =
+    displayGroup.createdAt.trim().length > 0
+      ? formatJapaneseDate(displayGroup.createdAt)
+      : '—';
 
   const handleJoin = async () => {
     setJoinState('loading');
@@ -126,7 +130,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
                   <CalendarDays size={15} className="text-login-accent" />
                 </div>
                 <span className="text-[11px] font-semibold text-login-fg leading-tight mt-0.5 font-sans">
-                  {displayGroup.createdAt}
+                  {createdAtDisplay}
                 </span>
                 <span className="text-[11px] text-login-muted font-sans">
                   作成日

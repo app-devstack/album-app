@@ -20,6 +20,7 @@ import {
   type AccentColor,
   type AccentColorConfig,
 } from '@/lib/data';
+import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -51,11 +52,6 @@ interface AlbumDetailProps {
   onBack: () => void;
   onAlbumUpdate: (updated: Partial<Album> & { id: string }) => Promise<void>;
   onAlbumDelete: (id: string) => Promise<void>;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
 function formatDuration(secs: number): string {
@@ -102,7 +98,7 @@ function AlbumCover({
           )}
           <span className="flex items-center gap-1">
             <CalendarDays size={11} />
-            {formatDate(createdAt)}
+            {formatJapaneseDate(createdAt)}
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium">

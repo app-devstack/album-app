@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { type Album, type Memo } from '@/db/schema';
 import { type AccentColorConfig } from '@/lib/data';
+import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import { Check, NotebookPen, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -21,11 +22,6 @@ function getMoodStyle(label: string | undefined) {
     MOOD_OPTIONS.find((m) => m.label === label)?.color ??
     'bg-muted text-muted-foreground'
   );
-}
-
-function formatMemoDate(iso: string) {
-  const d = new Date(iso);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
 interface MemoCardProps {
@@ -206,8 +202,8 @@ function MemoCard({ memo, accentConfig, onUpdate, onDelete }: MemoCardProps) {
       ) : (
         <p className="text-[11px] text-muted-foreground/60">
           {memo.updatedAt !== memo.createdAt
-            ? `${formatMemoDate(memo.updatedAt)} 更新`
-            : formatMemoDate(memo.createdAt)}
+            ? `${formatJapaneseDate(memo.updatedAt)} 更新`
+            : formatJapaneseDate(memo.createdAt)}
         </p>
       )}
     </div>
