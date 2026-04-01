@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Photo } from '@/db/schema';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Loader2Icon as SpinnerIcon, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 /** アルバム詳細ライトボックスに渡すプロパティ。 */
 export interface AlbumDetailLightboxDialogProps {
@@ -22,6 +22,11 @@ export function AlbumDetailLightboxDialog({
   onDelete,
 }: AlbumDetailLightboxDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [item?.id, item?.mediaType]);
 
   if (!item) return null;
 
@@ -78,18 +83,37 @@ export function AlbumDetailLightboxDialog({
           </Button>
         </div>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden pt-14 sm:pt-16">
+        <div
+          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden pt-14 sm:pt-16"
+          aria-busy={item.mediaType === 'image' ? !imageLoaded : undefined}
+        >
           {item.mediaType === 'video' ? (
             <div className="flex h-full w-full max-h-full items-center justify-center px-2 pb-4 sm:px-4">
               <VideoPlayer src={item.url} />
             </div>
           ) : (
-            <img
-              src={`/api/photos/${item.id}/optimized?mode=full`}
-              alt={item.alt}
-              className="max-h-[calc(100dvh-5.5rem)] w-full object-contain sm:max-h-[min(80vh,calc(100%-5rem))]"
-              crossOrigin="anonymous"
-            />
+            <>
+              {!imageLoaded && (
+                <div className="absolute inset-0 top-14 flex items-center justify-center sm:top-16">
+                  <SpinnerIcon
+                    role="status"
+                    className="size-10 animate-spin text-primary"
+                    aria-label="画像を読み込み中"
+                  />
+                </div>
+              )}
+              <img
+                src={`/api/photos/${item.id}/optimized?mode=full`}
+                alt={item.alt}
+                className={cn(
+                  'max-h-[calc(100dvh-5.5rem)] w-full object-contain transition-opacity duration-200 sm:max-h-[min(80vh,calc(100%-5rem))]',
+                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                )}
+                crossOrigin="anonymous"
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageLoaded(true)}
+              />
+            </>
           )}
         </div>
       </DialogContent>

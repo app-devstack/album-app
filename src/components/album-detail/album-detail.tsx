@@ -326,7 +326,6 @@ export function AlbumDetail({
                 item={item}
                 accentConfig={accentConfig}
                 onOpen={setLightboxItem}
-                onDelete={handleDeletePhoto}
               />
             ))}
 

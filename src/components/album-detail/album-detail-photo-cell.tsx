@@ -2,20 +2,17 @@ import { Photo } from '@/db/schema';
 import { AccentColorConfig } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { PlayCircleIcon } from 'lucide-react';
-import { AlbumDetailPhotoMenu } from './album-detail-photo-menu';
 
 interface AlbumDetailPhotoCellProps {
   item: Photo;
   accentConfig: AccentColorConfig;
   onOpen: (item: Photo) => void;
-  onDelete: (id: string) => void;
 }
 
 export function AlbumDetailPhotoCell({
   item,
   accentConfig,
   onOpen,
-  onDelete,
 }: AlbumDetailPhotoCellProps) {
   const isVideo = item.mediaType === 'video';
   return (
@@ -65,8 +62,6 @@ export function AlbumDetailPhotoCell({
           />
         </div>
       )}
-
-      <AlbumDetailPhotoMenu onDelete={() => onDelete(item.id)} />
     </div>
   );
 }
