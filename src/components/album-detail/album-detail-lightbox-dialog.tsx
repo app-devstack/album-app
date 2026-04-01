@@ -13,6 +13,7 @@ export interface AlbumDetailLightboxDialogProps {
   item: Photo | null; // 表示する写真または動画
   onClose: () => void; // 閉じる
   onDelete: () => Promise<void>; // 確認後に実行する削除処理
+  accentText: string; // useAccentStore 連動の ACCENT_COLORS.text（例: text-rose-500）
 }
 
 /** タップで開くフルスクリーンに近いメディアビューア。上部に戻る・削除を表示する。 */
@@ -20,6 +21,7 @@ export function AlbumDetailLightboxDialog({
   item,
   onClose,
   onDelete,
+  accentText,
 }: AlbumDetailLightboxDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -97,7 +99,7 @@ export function AlbumDetailLightboxDialog({
                 <div className="absolute inset-0 top-14 flex items-center justify-center sm:top-16">
                   <SpinnerIcon
                     role="status"
-                    className="size-10 animate-spin text-primary"
+                    className={cn('size-10 animate-spin', accentText)}
                     aria-label="画像を読み込み中"
                   />
                 </div>

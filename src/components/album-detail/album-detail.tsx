@@ -365,6 +365,7 @@ export function AlbumDetail({
 
       <AlbumDetailLightboxDialog
         item={lightboxItem}
+        accentText={accentConfig.text}
         onClose={() => setLightboxItem(null)}
         onDelete={async () => {
           if (!lightboxItem) return;
