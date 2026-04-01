@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGroupContext } from '@/contexts/GroupContext';
 import { useCreateGroup, useGroups } from '@/hooks/fetchers/use-groups';
+import { groupRoleLabelJa } from '@/lib/group-role';
 import { Plus, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -65,7 +66,9 @@ export default function GroupSelectPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">{group.name}</p>
-                  <p className="text-xs text-muted-foreground">{group.role}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {groupRoleLabelJa(group.role)}
+                  </p>
                 </div>
               </button>
             ))

@@ -11,13 +11,23 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useGroup,
   useGroupMembers,
   useUpdateGroup,
+  useUpdateMemberRole,
 } from '@/hooks/fetchers/use-groups';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { groupRoleLabelJa, isGroupAdmin } from '@/lib/group-role';
+import { ArrowLeft, Pencil, UserPlus, UserRound } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -25,39 +35,82 @@ import { useEffect, useState } from 'react';
 // GroupSettingsPage
 // -------------------------------------------------------------------
 
+function roleBadgeVariant(role: string): 'default' | 'secondary' | 'outline' {
+  if (role === 'owner') return 'default';
+  if (role === 'editor') return 'secondary';
+  return 'outline';
+}
+
 export default function GroupSettingsPage({ groupId }: { groupId: string }) {
   const router = useRouter();
   const { data: group, isLoading: groupLoading } = useGroup(groupId);
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId);
   const { mutateAsync: updateGroup } = useUpdateGroup();
+  const { mutateAsync: updateMemberRole, isPending: roleUpdating } =
+    useUpdateMemberRole();
 
   const [editOpen, setEditOpen] = useState(false);
 
-  const isOwner = group?.role === 'owner';
+  const canManageGroup = isGroupAdmin(group?.role);
 
   const handleSaveName = async (name: string) => {
     await updateGroup({ groupId, name });
+  };
+
+  const handleRoleChange = async (
+    userId: string,
+    role: 'member' | 'editor'
+  ) => {
+    await updateMemberRole({ groupId, userId, role });
   };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-xl mx-auto px-4 py-6 flex flex-col gap-8">
         {/* ヘッダー */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            className="h-8 w-8 shrink-0 rounded-full"
-            aria-label="アルバム一覧に戻る"
-          >
-            <ArrowLeft size={16} />
-          </Button>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="h-8 w-8 shrink-0 rounded-full"
+              aria-label="前の画面に戻る"
+            >
+              <ArrowLeft size={16} />
+            </Button>
 
-          <div className="flex-1 min-w-0 flex items-center gap-2 group">
-            <h1 className="font-sans text-xl font-medium text-foreground truncate tracking-wide">
-              グループ設定
-            </h1>
+            <div className="flex-1 min-w-0 flex items-center gap-2 group">
+              <h1 className="font-sans text-xl font-medium text-foreground truncate tracking-wide">
+                グループ設定
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 pl-11">
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-sans gap-1.5"
+              asChild
+            >
+              <Link href="/">
+                <UserRound className="size-3.5 opacity-70" />
+                グループを切り替え
+              </Link>
+            </Button>
+            {canManageGroup && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-sans gap-1.5"
+                asChild
+              >
+                <Link href={`/groups/${groupId}/invite`}>
+                  <UserPlus className="size-3.5 opacity-70" />
+                  グループに招待
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -78,7 +131,7 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
                   <span className="text-sm font-medium">{group?.name}</span>
                 )}
               </div>
-              {isOwner && (
+              {canManageGroup && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -117,6 +170,9 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
             ) : members && members.length > 0 ? (
               members.map((member) => {
                 const initial = member.name?.charAt(0)?.toUpperCase() ?? '?';
+                const showRoleSelect =
+                  canManageGroup && member.role !== 'owner';
+
                 return (
                   <div
                     key={member.userId}
@@ -139,14 +195,40 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
                         {member.email}
                       </span>
                     </div>
-                    <Badge
-                      variant={
-                        member.role === 'owner' ? 'default' : 'secondary'
-                      }
-                      className="shrink-0 text-xs"
-                    >
-                      {member.role === 'owner' ? 'オーナー' : 'メンバー'}
-                    </Badge>
+                    {showRoleSelect ? (
+                      <Select
+                        value={
+                          member.role === 'editor' || member.role === 'member'
+                            ? member.role
+                            : 'member'
+                        }
+                        onValueChange={(v) => {
+                          if (v === 'member' || v === 'editor') {
+                            void handleRoleChange(member.userId, v);
+                          }
+                        }}
+                        disabled={roleUpdating}
+                      >
+                        <SelectTrigger
+                          size="sm"
+                          className="w-[7.5rem] shrink-0"
+                          aria-label={`${member.name}の権限`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="member">メンバー</SelectItem>
+                          <SelectItem value="editor">編集者</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge
+                        variant={roleBadgeVariant(member.role)}
+                        className="shrink-0 text-xs"
+                      >
+                        {groupRoleLabelJa(member.role)}
+                      </Badge>
+                    )}
                   </div>
                 );
               })

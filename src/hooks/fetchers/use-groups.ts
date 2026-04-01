@@ -51,6 +51,25 @@ const updateGroup = async ({
   return res.json();
 };
 
+const updateMemberRole = async ({
+  groupId,
+  userId,
+  role,
+}: {
+  groupId: string;
+  userId: string;
+  role: 'member' | 'editor';
+}) => {
+  const res = await api.groups[':groupId'].members[':userId'].$patch({
+    param: { groupId, userId },
+    json: { role },
+  });
+  if (!res.ok) {
+    throw new Error('Failed to update member role');
+  }
+  return res.json();
+};
+
 const createGroup = async (name: string) => {
   const res = await api.groups.$post({ json: { name } });
   if (!res.ok) {
@@ -87,6 +106,18 @@ export const useUpdateGroup = () => {
   return useMutation({
     mutationFn: updateGroup,
     onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
+    },
+  });
+};
+
+export const useUpdateMemberRole = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateMemberRole,
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.members(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
     },

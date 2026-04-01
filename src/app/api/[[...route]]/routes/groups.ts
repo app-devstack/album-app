@@ -1,6 +1,7 @@
 import db from '@/db';
 import { groupInviteTokens, groupMembers, groups } from '@/db/schema';
 import { createApp } from '@/lib/api';
+import { isGroupAdmin } from '@/lib/group-role';
 import { getSession } from '@/lib/service/auth';
 import { zValidator } from '@hono/zod-validator';
 import { and, eq } from 'drizzle-orm';
@@ -14,6 +15,10 @@ const updateGroupSchema = z.object({
 const createGroupSchema = z.object({
   name: z.string().min(1),
   coverUrl: z.string().optional(),
+});
+
+const updateMemberRoleSchema = z.object({
+  role: z.enum(['member', 'editor']),
 });
 
 const router = createApp();
@@ -92,7 +97,7 @@ export const groupsRouter = router
   })
   /**
    * PATCH /api/groups/:groupId
-   * グループ名を更新する（ownerのみ）
+   * グループ名を更新する（owner / editor）
    */
   .patch('/:groupId', zValidator('json', updateGroupSchema), async (c) => {
     const groupId = c.req.param('groupId');
@@ -107,7 +112,7 @@ export const groupsRouter = router
     });
 
     if (!member) return c.json({ error: 'Not found' }, 404);
-    if (member.role !== 'owner') return c.json({ error: 'Forbidden' }, 403);
+    if (!isGroupAdmin(member.role)) return c.json({ error: 'Forbidden' }, 403);
 
     const { name } = c.req.valid('json');
     await db
@@ -153,6 +158,55 @@ export const groupsRouter = router
     );
   })
   /**
+   * PATCH /api/groups/:groupId/members/:userId
+   * メンバーの role を member / editor に更新（owner / editor が実行可。owner 行は変更不可）
+   */
+  .patch(
+    '/:groupId/members/:userId',
+    zValidator('json', updateMemberRoleSchema),
+    async (c) => {
+      const groupId = c.req.param('groupId');
+      const targetUserId = c.req.param('userId');
+      const session = await getSession(c.req.raw.headers);
+      if (!session?.user) return c.json({ error: 'Unauthorized' }, 401);
+
+      const caller = await db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.userId, session.user.id)
+        ),
+      });
+
+      if (!caller) return c.json({ error: 'Not found' }, 404);
+      if (!isGroupAdmin(caller.role))
+        return c.json({ error: 'Forbidden' }, 403);
+
+      const target = await db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.userId, targetUserId)
+        ),
+      });
+
+      if (!target) return c.json({ error: 'Not found' }, 404);
+      if (target.role === 'owner') return c.json({ error: 'Forbidden' }, 403);
+
+      const { role } = c.req.valid('json');
+      await db
+        .update(groupMembers)
+        .set({ role })
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, targetUserId)
+          )
+        )
+        .run();
+
+      return c.json({ userId: targetUserId, role });
+    }
+  )
+  /**
    * GET /api/groups/:groupId/invite-token
    * グループのアクティブな招待トークンを返す。なければ新規作成。
    */
@@ -160,6 +214,15 @@ export const groupsRouter = router
     const groupId = c.req.param('groupId');
     const session = await getSession(c.req.raw.headers);
     if (!session?.user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const member = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.userId, session.user.id)
+      ),
+    });
+    if (!member) return c.json({ error: 'Not found' }, 404);
+    if (!isGroupAdmin(member.role)) return c.json({ error: 'Forbidden' }, 403);
 
     const createdBy = session.user.id;
 
@@ -195,6 +258,15 @@ export const groupsRouter = router
     const groupId = c.req.param('groupId');
     const session = await getSession(c.req.raw.headers);
     if (!session?.user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const member = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.userId, session.user.id)
+      ),
+    });
+    if (!member) return c.json({ error: 'Not found' }, 404);
+    if (!isGroupAdmin(member.role)) return c.json({ error: 'Forbidden' }, 403);
 
     await db
       .update(groupInviteTokens)

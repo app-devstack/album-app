@@ -95,7 +95,7 @@ export const groupMembers = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    role: text('role', { enum: ['owner', 'member'] })
+    role: text('role', { enum: ['owner', 'editor', 'member'] })
       .notNull()
       .default('member'),
     joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
