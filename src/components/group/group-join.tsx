@@ -69,7 +69,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
           {/* カバー画像 */}
           <div className="relative h-44 overflow-hidden">
             <img
-              src={displayGroup.coverUrl}
+              src={displayGroup.coverUrl || '/img/album-app-join-cover-img.jpg'}
               alt={`${displayGroup.name}のカバー`}
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
