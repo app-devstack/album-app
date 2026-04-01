@@ -56,7 +56,7 @@ export function SettingsPage() {
             icon={<UsersIcon size={16} />}
             label="グループ設定"
             description="グループの管理やグループの切り替え"
-            href={`/groups/${currentGroupId}/setting`}
+            href={`/groups/${currentGroupId}/setting?from=settings`}
           />
         </section>
 

@@ -27,8 +27,9 @@ import {
   useUpdateMemberRole,
 } from '@/hooks/fetchers/use-groups';
 import { groupRoleLabelJa, isGroupAdmin } from '@/lib/group-role';
-import { ArrowLeft, Pencil, UserPlus, UserRoundIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { ChevronLeftIcon, Pencil, UserPlus, UserRoundIcon } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 // -------------------------------------------------------------------
@@ -42,7 +43,9 @@ function roleBadgeVariant(role: string): 'default' | 'secondary' | 'outline' {
 }
 
 export default function GroupSettingsPage({ groupId }: { groupId: string }) {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const showBackToSettings = searchParams.get('from') === 'settings';
+
   const { data: group, isLoading: groupLoading } = useGroup(groupId);
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId);
   const { mutateAsync: updateGroup } = useUpdateGroup();
@@ -68,24 +71,19 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
     <div className="min-h-screen bg-background">
       <div className="max-w-xl mx-auto px-4 py-6 flex flex-col gap-8">
         {/* ヘッダー */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.back()}
-              className="h-8 w-8 shrink-0 rounded-full"
-              aria-label="前の画面に戻る"
+        <div className="flex flex-col gap-2">
+          {showBackToSettings && (
+            <Link
+              href="/settings"
+              className="mb-4 inline-flex max-w-full items-center gap-1.5 text-sm font-medium font-sans text-muted-foreground transition-colors hover:text-foreground"
             >
-              <ArrowLeft size={16} />
-            </Button>
-
-            <div className="flex-1 min-w-0 flex items-center gap-2 group">
-              <h1 className="font-sans text-xl font-medium text-foreground truncate tracking-wide">
-                グループ設定
-              </h1>
-            </div>
-          </div>
+              <ChevronLeftIcon className="size-4 shrink-0" aria-hidden />
+              戻る
+            </Link>
+          )}
+          <h1 className="font-sans text-lg font-medium tracking-wide text-foreground text-balance">
+            グループ設定
+          </h1>
         </div>
 
         {/* グループ情報セクション */}
