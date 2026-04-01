@@ -1,7 +1,6 @@
 import { NewPhoto, Photo } from '@/db/schema';
 import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 
 // Query Keys
 export const photoKeys = {
@@ -45,9 +44,14 @@ const createPhoto = async ({
     });
 
   // 2. Upload the file to R2 using the signed URL
-  await axios.put(signedUrl, file, {
+  const uploadRes = await fetch(signedUrl, {
+    method: 'PUT',
+    body: file,
     headers: { 'Content-Type': file.type },
   });
+  if (!uploadRes.ok) {
+    throw new Error('Failed to upload file to storage');
+  }
 
   // 3. Save photo metadata to the database (URL will be generated from R2 key on server)
   const res = await api.photos.album[':albumId'].$post({
