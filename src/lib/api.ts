@@ -13,6 +13,7 @@ import type { AppType } from '../app/api/[[...route]]/route';
 export type Bindings = {
   DB: D1Database;
   R2: R2Bucket;
+  MEDIA: MediaBinding;
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
   GOOGLE_CLIENT_ID: string;
