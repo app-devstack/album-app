@@ -104,17 +104,20 @@ export function AlbumDetailLightboxDialog({
                   />
                 </div>
               )}
-              <img
-                src={`/api/photos/${item.id}/optimized?mode=full`}
-                alt={item.alt}
-                className={cn(
-                  'max-h-[calc(100dvh-5.5rem)] w-full object-contain transition-opacity duration-200 sm:max-h-[min(80vh,calc(100%-5rem))]',
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                )}
-                crossOrigin="anonymous"
-                onLoad={() => setImageLoaded(true)}
-                onError={() => setImageLoaded(true)}
-              />
+              <div className="contents sm:flex sm:min-h-0 sm:w-full sm:flex-1 sm:self-stretch sm:items-center sm:justify-center">
+                <img
+                  src={`/api/photos/${item.id}/optimized?mode=full`}
+                  alt={item.alt}
+                  className={cn(
+                    'max-h-[calc(100dvh-5.5rem)] w-full object-contain transition-opacity duration-200',
+                    'sm:max-h-full sm:max-w-full sm:h-auto sm:w-auto',
+                    imageLoaded ? 'opacity-100' : 'opacity-0'
+                  )}
+                  crossOrigin="anonymous"
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageLoaded(true)}
+                />
+              </div>
             </>
           )}
         </div>
