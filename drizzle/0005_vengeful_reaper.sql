@@ -1,0 +1,1 @@
+ALTER TABLE `photos` ADD `stream_uid` text;

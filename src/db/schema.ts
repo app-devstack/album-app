@@ -164,6 +164,7 @@ export const photos = sqliteTable('photos', {
     .default('image'),
   duration: real('duration'),
   r2Key: text('r2_key'), // R2 object key for uploaded files
+  streamUid: text('stream_uid'), // Cloudflare Stream用
   addedAt: text('added_at')
     .notNull()
     .default(sql`(date('now'))`),
