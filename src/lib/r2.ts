@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -7,7 +8,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from 'cloudflare:workers';
 import { v7 as uuidv7 } from 'uuid';
 
-const R2_BUCKET_NAME = 'album-app-media';
+const R2_BUCKET_NAME = env.R2_BUCKET_NAME;
 const R2_ENDPOINT = `https://${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
 const ACCESS_KEY_ID = env.R2_ACCESS_KEY_ID;
@@ -130,6 +131,23 @@ class R2Manager {
       contentType,
       expiresIn,
     };
+  }
+
+  /**
+   * R2からのダウンロード用Presigned GET URLを生成
+   * @param key - R2オブジェクトキー
+   * @param expiresIn - URL有効期限（秒）
+   * @returns Presigned GET URL
+   */
+  async createPresignedGetUrl(key: string, expiresIn = 3600): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+
+    const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn });
+
+    return signedUrl;
   }
 
   /**
