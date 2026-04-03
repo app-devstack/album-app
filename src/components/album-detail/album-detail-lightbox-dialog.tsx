@@ -1,6 +1,6 @@
 'use client';
 
-import { VideoPlayer } from '@/components/layout/video-player';
+import { VideoPlayer } from '@/components/common/video-player';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Photo } from '@/db/schema';
@@ -91,7 +91,11 @@ export function AlbumDetailLightboxDialog({
         >
           {item.mediaType === 'video' ? (
             <div className="flex h-full w-full max-h-full items-center justify-center px-2 pb-4 sm:px-4">
-              <VideoPlayer src={item.url} />
+              <VideoPlayer
+                src={item.url}
+                poster={item.thumbnailUrl || undefined}
+                duration={item.duration || undefined}
+              />
             </div>
           ) : (
             <>

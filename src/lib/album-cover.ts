@@ -15,7 +15,7 @@ export function albumCoverImageSrc(
 /** アルバムの coverUrl に保存する URL（動画はサムネがあればそれを使う） */
 export function photoUrlForAlbumCover(photo: Photo): string {
   if (photo.mediaType === 'video' && photo.thumbnailUrl) {
-    return photo.thumbnailUrl;
+    return `/api/photos/${photo.id}/video-thumbnail`;
   }
   return photo.url;
 }

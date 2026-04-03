@@ -61,7 +61,23 @@ const createPhoto = async ({
   if (!res.ok) {
     throw new Error('Failed to create photo');
   }
-  return res.json();
+  const newPhoto = await res.json();
+
+  // 4. 動画の場合はStream連携を開始（バックグラウンド処理）
+  if (photoData.mediaType === 'video') {
+    try {
+      await api.photos.album[':albumId']['stream-copy-from-r2'].$post({
+        param: { albumId },
+        json: { photoId: newPhoto.id, r2Key: key },
+      });
+      // Stream連携の成功/失敗に関わらず、写真は既に保存されているので続行
+    } catch (error) {
+      console.error('Stream copy failed (will fallback to R2):', error);
+      // エラーはログに記録するが、R2のオリジナル動画で表示可能なのでthrowしない
+    }
+  }
+
+  return newPhoto;
 };
 
 const deletePhoto = async (id: string): Promise<{ message: string }> => {

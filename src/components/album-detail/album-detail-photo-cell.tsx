@@ -27,7 +27,7 @@ export function AlbumDetailPhotoCell({
       {isVideo ? (
         item.thumbnailUrl ? (
           <img
-            src={item.thumbnailUrl}
+            src={`/api/photos/${item.id}/video-thumbnail`}
             alt={item.alt}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             crossOrigin="anonymous"
