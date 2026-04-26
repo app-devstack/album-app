@@ -1,15 +1,8 @@
 'use client';
 
-import { AlbumMemos } from '@/components/album/album-memos';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
-import {
-  useCreateMemo,
-  useDeleteMemo,
-  useMemos,
-  useUpdateMemo,
-} from '@/hooks/fetchers/use-memos';
 import {
   useCreatePhoto,
   useDeletePhoto,
@@ -24,15 +17,13 @@ import {
 import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import {
-  ArrowLeft,
   CalendarDays,
-  Check,
-  Edit2,
+  ChevronLeftIcon,
+  EllipsisVerticalIcon,
   Film,
   ImagePlus,
   MapPin,
   Plus,
-  Settings,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
@@ -40,6 +31,7 @@ import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
 import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
 import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
 import { AlbumDetailUploadingOverlay } from './album-detail-uploading-overlay';
+import { AlbumDetailMemoSection } from './memos/album-detail-memo-section';
 
 interface UploadingItem {
   /** ローカルで識別するための仮ID */
@@ -55,10 +47,214 @@ interface AlbumDetailProps {
   onAlbumDelete: (id: string) => Promise<void>;
 }
 
-function formatDuration(secs: number): string {
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+export function AlbumDetail({
+  album,
+  accent,
+  onBack,
+  onAlbumUpdate,
+  onAlbumDelete,
+}: AlbumDetailProps) {
+  const { data: photos = [], isLoading: isLoadingPhotos } = usePhotos(album.id);
+  const { mutateAsync: createPhotoMutation } = useCreatePhoto();
+  const { mutateAsync: deletePhotoMutation } = useDeletePhoto();
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
+  const [editTitle, setEditTitle] = useState(album.title);
+  const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
+
+  const handleDeletePhoto = async (photoId: string) => {
+    await deletePhotoMutation(photoId);
+  };
+
+  const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+
+    // 全ファイルをアップロード中リストに追加
+    const uploadTasks = files.map((file) => ({
+      tempId: `${Date.now()}-${Math.random()}-${file.name}`,
+      fileName: file.name,
+      file,
+    }));
+
+    setUploadingItems((prev) => [
+      ...prev,
+      ...uploadTasks.map(({ tempId, fileName }) => ({ tempId, fileName })),
+    ]);
+
+    // 並列アップロード
+    const results = await Promise.allSettled(
+      uploadTasks.map(async ({ tempId, file }) => {
+        const isVideo = file.type.startsWith('video/');
+        try {
+          await createPhotoMutation({
+            albumId: album.id,
+            file,
+            alt: file.name.replace(/\.[^.]+$/, ''),
+            mediaType: isVideo ? 'video' : 'image',
+          });
+          setUploadingItems((prev) =>
+            prev.filter((item) => item.tempId !== tempId)
+          );
+        } catch (error) {
+          console.error(`Failed to upload ${file.name}:`, error);
+          setUploadingItems((prev) =>
+            prev.filter((item) => item.tempId !== tempId)
+          );
+          throw error;
+        }
+      })
+    );
+
+    // 失敗したファイルがあればログ出力
+    const failed = results.filter((r) => r.status === 'rejected');
+    if (failed.length > 0) {
+      console.warn(`${failed.length}件のアップロードに失敗しました`);
+    }
+
+    e.target.value = '';
+  };
+
+  const handleSaveSettings = async () => {
+    await onAlbumUpdate({ id: album.id, title: editTitle });
+    setSettingsOpen(false);
+  };
+
+  // const imageCount = album.photoCount;
+  const imageCount = photos.filter((p) => p.mediaType === 'image').length;
+  const videoCount = photos.filter((p) => p.mediaType === 'video').length;
+
+  const coverImageSrc = albumCoverImageSrc(album);
+
+  return (
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <AlbumMemoProvider albumId={album.id}>
+        <AlbumHeader
+          title={album.title}
+          onBack={onBack}
+          onSettingsOpen={() => setSettingsOpen(true)}
+        />
+
+        <AlbumCover
+          coverImageSrc={coverImageSrc}
+          title={album.title}
+          location={album.location}
+          createdAt={album.createdAt}
+          imageCount={imageCount}
+          videoCount={videoCount}
+        />
+
+        <AlbumMediaGrid
+          isLoadingPhotos={isLoadingPhotos}
+          photos={photos}
+          uploadingItems={uploadingItems}
+          accentConfig={accentConfig}
+          onAddClick={() => fileInputRef.current?.click()}
+          onOpenLightbox={setLightboxItem}
+        />
+
+        <AlbumDetailMemoSection
+          accentConfig={accentConfig}
+          onAddPhoto={() => fileInputRef.current?.click()}
+        />
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleAddMedia}
+          className="hidden"
+          multiple
+          accept="image/*,video/*"
+        />
+
+        <AlbumDetailLightboxDialog
+          item={lightboxItem}
+          accentText={accentConfig.text}
+          onClose={() => setLightboxItem(null)}
+          onDelete={async () => {
+            if (!lightboxItem) return;
+            await handleDeletePhoto(lightboxItem.id);
+          }}
+        />
+
+        <AlbumDetailSettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          editTitle={editTitle}
+          onEditTitleChange={setEditTitle}
+          onSave={handleSaveSettings}
+          photos={photos}
+          albumCoverUrl={album.coverUrl}
+          onSetCoverUrl={async (coverUrl: string) => {
+            await onAlbumUpdate({ id: album.id, coverUrl });
+          }}
+          photoUrlForCover={photoUrlForAlbumCover}
+          onDelete={async () => {
+            if (confirm('このアルバムを削除してもよろしいですか？')) {
+              await onAlbumDelete(album.id);
+              onBack();
+            }
+          }}
+          accentBg={accentConfig.bg}
+          accentBgHover={accentConfig.bgHover}
+        />
+      </AlbumMemoProvider>
+    </main>
+  );
+}
+
+interface AlbumMediaGridProps {
+  isLoadingPhotos: boolean;
+  photos: Photo[];
+  uploadingItems: UploadingItem[];
+  accentConfig: AccentColorConfig;
+  onAddClick: () => void;
+  onOpenLightbox: (item: Photo) => void;
+}
+
+function AlbumMediaGrid({
+  isLoadingPhotos,
+  photos,
+  uploadingItems,
+  accentConfig,
+  onAddClick,
+  onOpenLightbox,
+}: AlbumMediaGridProps) {
+  if (isLoadingPhotos) {
+    return <div>Loading photos...</div>;
+  }
+
+  if (photos.length === 0 && uploadingItems.length === 0) {
+    return (
+      <EmptyMediaState accentConfig={accentConfig} onAddClick={onAddClick} />
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+        {photos.map((item) => (
+          <AlbumDetailPhotoCell
+            key={item.id}
+            item={item}
+            accentConfig={accentConfig}
+            onOpen={onOpenLightbox}
+          />
+        ))}
+
+        <AlbumDetailAddMediaCell onAddClick={onAddClick} />
+      </div>
+
+      <AlbumDetailUploadingOverlay
+        uploadingItems={uploadingItems}
+        accentText={accentConfig.text}
+      />
+    </div>
+  );
 }
 
 interface AlbumCoverProps {
@@ -152,248 +348,44 @@ function EmptyMediaState({ accentConfig, onAddClick }: EmptyMediaStateProps) {
   );
 }
 
-export function AlbumDetail({
-  album,
-  accent,
-  onBack,
-  onAlbumUpdate,
-  onAlbumDelete,
-}: AlbumDetailProps) {
-  const { data: photos = [], isLoading: isLoadingPhotos } = usePhotos(album.id);
-  const { mutateAsync: createPhotoMutation } = useCreatePhoto();
-  const { mutateAsync: deletePhotoMutation } = useDeletePhoto();
+/** アルバム詳細画面のヘッダーに渡すプロパティ。 */
+interface AlbumHeaderProps {
+  title: string; // アルバムのタイトル
+  onBack: () => void; // 戻るボタンのクリックハンドラー
+  onSettingsOpen: () => void; // 設定ボタンのクリックハンドラー
+}
 
-  const { data: memos = [], isLoading: isLoadingMemos } = useMemos(album.id);
-  const { mutateAsync: createMemoMutation } = useCreateMemo();
-  const { mutateAsync: updateMemoMutation } = useUpdateMemo();
-  const { mutateAsync: deleteMemoMutation } = useDeleteMemo();
-
-  // Wrap createMemo to match component signature
-  const handleCreateMemo = async (memo: {
-    albumId: string;
-    body: string;
-    mood?: string;
-  }) => {
-    return createMemoMutation(memo);
-  };
-
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
-  const [editTitle, setEditTitle] = useState(album.title);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
-
-  const handleDeletePhoto = async (photoId: string) => {
-    await deletePhotoMutation(photoId);
-  };
-
-  const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-
-    for (const file of files) {
-      const isVideo = file.type.startsWith('video/');
-      const tempId = `${Date.now()}-${file.name}`;
-
-      setUploadingItems((prev) => [...prev, { tempId, fileName: file.name }]);
-
-      try {
-        await createPhotoMutation({
-          albumId: album.id,
-          file,
-          alt: file.name.replace(/\.[^.]+$/, ''),
-          mediaType: isVideo ? 'video' : 'image',
-        });
-        setUploadingItems((prev) =>
-          prev.filter((item) => item.tempId !== tempId)
-        );
-      } catch {
-        setUploadingItems((prev) =>
-          prev.filter((item) => item.tempId !== tempId)
-        );
-      }
-    }
-    e.target.value = '';
-  };
-
-  const handleSaveSettings = async () => {
-    await onAlbumUpdate({ id: album.id, title: editTitle });
-    setSettingsOpen(false);
-  };
-
-  // const imageCount = album.photoCount;
-  const imageCount = photos.filter((p) => p.mediaType === 'image').length;
-  const videoCount = photos.filter((p) => p.mediaType === 'video').length;
-
-  const coverImageSrc = albumCoverImageSrc(album);
-
+/** アルバム詳細画面の上部に表示するヘッダーコンポーネント。 */
+function AlbumHeader({ title, onBack, onSettingsOpen }: AlbumHeaderProps) {
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onBack}
+        className="h-8 w-8 shrink-0 rounded-full"
+        aria-label="アルバム一覧に戻る"
+      >
+        <ChevronLeftIcon size={16} className="size-6" />
+      </Button>
+
+      <div className="flex-1 min-w-0 flex items-center gap-2 group">
+        <h1 className="font-sans text-xl font-medium text-foreground truncate tracking-wide">
+          {title}
+        </h1>
+      </div>
+
+      <div className="flex items-center gap-1.5 shrink-0">
         <Button
           variant="ghost"
           size="icon"
-          onClick={onBack}
-          className="h-8 w-8 shrink-0 rounded-full"
-          aria-label="アルバム一覧に戻る"
+          className="h-8 w-8 rounded-full"
+          onClick={onSettingsOpen}
+          aria-label="アルバム設定"
         >
-          <ArrowLeft size={16} />
+          <EllipsisVerticalIcon size={14} />
         </Button>
-
-        <div className="flex-1 min-w-0 flex items-center gap-2 group">
-          {editingTitle ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="h-8 text-base font-sans font-medium py-0 px-2 w-56"
-                autoFocus
-                onKeyDown={async (e) => {
-                  if (e.key === 'Enter') {
-                    await onAlbumUpdate({ id: album.id, title: editTitle });
-                    setEditingTitle(false);
-                  }
-                  if (e.key === 'Escape') setEditingTitle(false);
-                }}
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                onClick={async () => {
-                  await onAlbumUpdate({ id: album.id, title: editTitle });
-                  setEditingTitle(false);
-                }}
-                aria-label="タイトルを保存"
-              >
-                <Check size={14} />
-              </Button>
-            </div>
-          ) : (
-            <>
-              <h1 className="font-sans text-xl font-medium text-foreground truncate tracking-wide">
-                {album.title}
-              </h1>
-              <button
-                onClick={() => setEditingTitle(true)}
-                className="opacity-0 group-hover:opacity-100 hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
-                aria-label="タイトルを編集"
-              >
-                <Edit2 size={12} />
-              </button>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-full"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="アルバム設定"
-          >
-            <Settings size={14} />
-          </Button>
-        </div>
       </div>
-
-      <AlbumCover
-        coverImageSrc={coverImageSrc}
-        title={album.title}
-        location={album.location}
-        createdAt={album.createdAt}
-        imageCount={imageCount}
-        videoCount={videoCount}
-      />
-
-      {isLoadingPhotos ? (
-        <div>Loading photos...</div>
-      ) : photos.length === 0 && uploadingItems.length === 0 ? (
-        <EmptyMediaState
-          accentConfig={accentConfig}
-          onAddClick={() => fileInputRef.current?.click()}
-        />
-      ) : (
-        <div className="relative">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-            {photos.map((item) => (
-              <AlbumDetailPhotoCell
-                key={item.id}
-                item={item}
-                accentConfig={accentConfig}
-                onOpen={setLightboxItem}
-              />
-            ))}
-
-            <AlbumDetailAddMediaCell
-              onAddClick={() => fileInputRef.current?.click()}
-            />
-          </div>
-
-          <AlbumDetailUploadingOverlay
-            uploadingItems={uploadingItems}
-            accentText={accentConfig.text}
-          />
-        </div>
-      )}
-
-      {isLoadingMemos ? (
-        <div>Loading memos...</div>
-      ) : (
-        <AlbumMemos
-          album={album}
-          accentConfig={accentConfig}
-          memos={memos}
-          createMemo={handleCreateMemo}
-          updateMemo={updateMemoMutation}
-          deleteMemo={deleteMemoMutation}
-        />
-      )}
-
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleAddMedia}
-        className="hidden"
-        multiple
-        accept="image/*,video/*"
-      />
-
-      <AlbumDetailLightboxDialog
-        item={lightboxItem}
-        accentText={accentConfig.text}
-        onClose={() => setLightboxItem(null)}
-        onDelete={async () => {
-          if (!lightboxItem) return;
-          await handleDeletePhoto(lightboxItem.id);
-        }}
-      />
-
-      <AlbumDetailSettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        editTitle={editTitle}
-        onEditTitleChange={setEditTitle}
-        onSave={handleSaveSettings}
-        photos={photos}
-        albumCoverUrl={album.coverUrl}
-        onSetCoverUrl={async (coverUrl: string) => {
-          await onAlbumUpdate({ id: album.id, coverUrl });
-        }}
-        photoUrlForCover={photoUrlForAlbumCover}
-        onDelete={async () => {
-          if (confirm('このアルバムを削除してもよろしいですか？')) {
-            await onAlbumDelete(album.id);
-            onBack();
-          }
-        }}
-        accentBg={accentConfig.bg}
-        accentBgHover={accentConfig.bgHover}
-      />
-    </main>
+    </div>
   );
 }
