@@ -23,7 +23,6 @@ export type Bindings = {
   R2_SECRET_ACCESS_KEY: string;
   R2_BUCKET_NAME: string;
   R2_ENDPOINT: string;
-  CLOUDFLARE_STREAM_API_TOKEN: string;
   ENABLE_LOCAL_UPLOAD?: string | undefined;
 };
 
