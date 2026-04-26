@@ -1,5 +1,7 @@
 import { NewPhoto, Photo } from '@/db/schema';
+import { toast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { generateThumbnail } from '@/lib/thumbnail';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Query Keys
@@ -28,7 +30,54 @@ const createPhoto = async ({
   file,
   ...photoData
 }: CreatePhotoPayload): Promise<Photo> => {
-  // 1. Get a signed URL from the API
+  const fileSize = (file.size / 1024 / 1024).toFixed(2);
+  const mediaType = photoData.mediaType === 'video' ? '動画' : '画像';
+  const isVideo = photoData.mediaType === 'video';
+
+  // 1. 動画の場合はサムネイル生成
+  let thumbnailR2Key: string | undefined;
+  if (isVideo) {
+    try {
+      const startThumb = Date.now();
+      const { blob } = await generateThumbnail(file);
+
+      // サムネイル用のPresigned URL取得
+      const thumbnailFile = new File([blob], `thumb_${file.name}.jpg`, {
+        type: 'image/jpeg',
+      });
+      const { signedUrl: thumbSignedUrl, key: thumbKey } =
+        await api.photos.album[':albumId']['upload-url']
+          .$post({
+            param: { albumId },
+            json: {
+              filename: thumbnailFile.name,
+              contentType: thumbnailFile.type,
+              fileSize: thumbnailFile.size,
+            },
+          })
+          .then((res) => {
+            if (!res.ok) throw new Error('Failed to get thumbnail signed URL');
+            return res.json();
+          });
+
+      // サムネイルをR2にアップロード
+      const thumbUploadRes = await fetch(thumbSignedUrl, {
+        method: 'PUT',
+        body: thumbnailFile,
+        headers: { 'Content-Type': thumbnailFile.type },
+      });
+      if (!thumbUploadRes.ok) {
+        throw new Error('Failed to upload thumbnail to storage');
+      }
+
+      thumbnailR2Key = thumbKey;
+    } catch (error) {
+      console.error('Thumbnail generation/upload failed:', error);
+    }
+  }
+
+  // 2. Get a signed URL from the API
+  const startSignedUrl = Date.now();
   const { signedUrl, key } = await api.photos.album[':albumId']['upload-url']
     .$post({
       param: { albumId },
@@ -43,7 +92,8 @@ const createPhoto = async ({
       return res.json();
     });
 
-  // 2. Upload the file to R2 using the signed URL
+  // 3. Upload the file to R2 using the signed URL
+  const startUpload = Date.now();
   const uploadRes = await fetch(signedUrl, {
     method: 'PUT',
     body: file,
@@ -53,29 +103,15 @@ const createPhoto = async ({
     throw new Error('Failed to upload file to storage');
   }
 
-  // 3. Save photo metadata to the database (URL will be generated from R2 key on server)
+  // 4. Save photo metadata to the database (URL will be generated from R2 key on server)
   const res = await api.photos.album[':albumId'].$post({
     param: { albumId },
-    json: { ...photoData, r2Key: key },
+    json: { ...photoData, r2Key: key, thumbnailR2Key },
   });
   if (!res.ok) {
     throw new Error('Failed to create photo');
   }
   const newPhoto = await res.json();
-
-  // 4. 動画の場合はStream連携を開始（バックグラウンド処理）
-  if (photoData.mediaType === 'video') {
-    try {
-      await api.photos.album[':albumId']['stream-copy-from-r2'].$post({
-        param: { albumId },
-        json: { photoId: newPhoto.id, r2Key: key },
-      });
-      // Stream連携の成功/失敗に関わらず、写真は既に保存されているので続行
-    } catch (error) {
-      console.error('Stream copy failed (will fallback to R2):', error);
-      // エラーはログに記録するが、R2のオリジナル動画で表示可能なのでthrowしない
-    }
-  }
 
   return newPhoto;
 };
@@ -86,6 +122,84 @@ const deletePhoto = async (id: string): Promise<{ message: string }> => {
     throw new Error('Failed to delete photo');
   }
   return res.json();
+};
+
+interface RegenerateThumbnailPayload {
+  photoId: string;
+  albumId: string;
+  videoUrl: string;
+}
+
+const regenerateThumbnail = async ({
+  photoId,
+  albumId,
+  videoUrl,
+}: RegenerateThumbnailPayload): Promise<Photo> => {
+  // R2から動画をダウンロード
+  const startDownload = Date.now();
+  const videoResponse = await fetch(videoUrl);
+  if (!videoResponse.ok) {
+    throw new Error('動画のダウンロードに失敗しました');
+  }
+  const videoBlob = await videoResponse.blob();
+  const videoFile = new File([videoBlob], 'video.mp4', {
+    type: videoBlob.type,
+  });
+
+  // サムネイル生成
+  const startThumb = Date.now();
+  const { blob } = await generateThumbnail(videoFile);
+
+  // サムネイル用のPresigned URL取得
+  const thumbnailFile = new File(
+    [blob],
+    `thumb_regenerated_${Date.now()}.jpg`,
+    {
+      type: 'image/jpeg',
+    }
+  );
+  const { signedUrl, key } = await api.photos.album[':albumId']['upload-url']
+    .$post({
+      param: { albumId },
+      json: {
+        filename: thumbnailFile.name,
+        contentType: thumbnailFile.type,
+        fileSize: thumbnailFile.size,
+      },
+    })
+    .then((res) => {
+      if (!res.ok) throw new Error('Failed to get thumbnail signed URL');
+      return res.json();
+    });
+
+  // サムネイルをR2にアップロード
+  const startUpload = Date.now();
+  const uploadRes = await fetch(signedUrl, {
+    method: 'PUT',
+    body: thumbnailFile,
+    headers: { 'Content-Type': thumbnailFile.type },
+  });
+  if (!uploadRes.ok) {
+    throw new Error('Failed to upload thumbnail to storage');
+  }
+
+  // DBを更新
+  const res = await api.photos[':id'].thumbnail.$patch({
+    param: { id: photoId },
+    json: { thumbnailR2Key: key },
+  });
+  if (!res.ok) {
+    throw new Error('Failed to update thumbnail');
+  }
+
+  const updatedPhoto = await res.json();
+
+  toast({
+    title: '🎉 サムネイル再生成完了',
+    description: '新しいサムネイルが設定されました',
+  });
+
+  return updatedPhoto;
 };
 
 // Hooks
@@ -118,6 +232,18 @@ export const useDeletePhoto = () => {
       queryClient.invalidateQueries({ queryKey: photoKeys.all });
       // Optionally, invalidate specific album detail if photo count is displayed there
       // queryClient.invalidateQueries({ queryKey: albumKeys.detail(albumId) });
+    },
+  });
+};
+
+export const useRegenerateThumbnail = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: regenerateThumbnail,
+    onSuccess: (updatedPhoto) => {
+      queryClient.invalidateQueries({
+        queryKey: photoKeys.lists(updatedPhoto.albumId),
+      });
     },
   });
 };

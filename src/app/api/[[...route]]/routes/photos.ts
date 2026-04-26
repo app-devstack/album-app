@@ -31,11 +31,11 @@ const createPhotoSchema = z.object({
   mediaType: z.enum(['image', 'video']).default('image'),
   duration: z.number().nullable().optional(),
   r2Key: z.string(),
+  thumbnailR2Key: z.string().optional(),
 });
 
-const streamCopySchema = z.object({
-  photoId: z.string(),
-  r2Key: z.string(),
+const updateThumbnailSchema = z.object({
+  thumbnailR2Key: z.string(),
 });
 
 export type UploadUrlRequest = z.infer<typeof uploadUrlSchema>;
@@ -294,23 +294,75 @@ export const photosRouter = router
     const body = c.req.valid('json');
 
     const url = resolveObjectPublicUrl(body.r2Key, env);
+    const thumbnailUrl = body.thumbnailR2Key
+      ? resolveObjectPublicUrl(body.thumbnailR2Key, env)
+      : (body.thumbnailUrl ?? null);
 
     const newPhoto = {
       id: uuidv7(),
       url,
       albumId,
-      thumbnailUrl: body.thumbnailUrl ?? null,
+      thumbnailUrl,
       alt: body.alt,
       caption: body.caption ?? null,
       mediaType: body.mediaType,
       duration: body.duration ?? null,
       r2Key: body.r2Key,
-      streamUid: null, // Stream連携前はnull
+      streamUid: null,
       addedAt: new Date().toISOString(),
     };
     await db.insert(photos).values(newPhoto).run();
     return c.json(newPhoto, 201);
   })
+  .patch(
+    '/:id/thumbnail',
+    zValidator('json', updateThumbnailSchema),
+    async (c) => {
+      try {
+        const id = c.req.param('id');
+        const { thumbnailR2Key } = c.req.valid('json');
+
+        const photo = await db
+          .select()
+          .from(photos)
+          .where(eq(photos.id, id))
+          .get();
+
+        if (!photo) {
+          return c.json({ error: '写真が見つかりません' }, 404);
+        }
+
+        if (photo.mediaType !== 'video') {
+          return c.json({ error: '動画のみサムネイル更新可能です' }, 400);
+        }
+
+        const thumbnailUrl = resolveObjectPublicUrl(thumbnailR2Key, env);
+
+        await db
+          .update(photos)
+          .set({ thumbnailUrl })
+          .where(eq(photos.id, id))
+          .run();
+
+        const updatedPhoto = await db
+          .select()
+          .from(photos)
+          .where(eq(photos.id, id))
+          .get();
+
+        return c.json(updatedPhoto, 200);
+      } catch (error) {
+        console.error('Thumbnail update error:', error);
+        return c.json(
+          {
+            error: 'サムネイルの更新に失敗しました',
+            message: error instanceof Error ? error.message : 'Unknown error',
+          },
+          500
+        );
+      }
+    }
+  )
   .delete('/:id', async (c) => {
     try {
       const id = c.req.param('id');
