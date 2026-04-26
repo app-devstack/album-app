@@ -10,19 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import { ComponentType, useCallback, useEffect, useRef, useState } from 'react';
-import type { ReactPlayerProps } from 'react-player/types';
-
-// react-playerを動的インポート（コード分割 + SSR無効化）
-const ReactPlayer = dynamic(() => import('react-player'), {
-  ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-black">
-      <div className="h-12 w-12 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-    </div>
-  ),
-}) as ComponentType<ReactPlayerProps>;
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UnifiedVideoPlayerProps {
   /** 動画URL（HLS .m3u8 または MP4等） */
@@ -54,8 +42,7 @@ function formatTime(secs: number): string {
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 /**
- * react-playerをベースにした統一動画プレイヤー
- * YouTube風のシンプルなUIでHLS/MP4に対応
+ * 動画プレイヤー
  */
 export function VideoPlayer({
   src,
@@ -67,7 +54,7 @@ export function VideoPlayer({
   onEnded,
   onError,
 }: UnifiedVideoPlayerProps) {
-  const playerRef = useRef<HTMLVideoElement | null>(null);
+  const playerRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -82,6 +69,20 @@ export function VideoPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [seeking, setSeeking] = useState(false);
+
+  // コンポーネントの状態とvideo要素を同期
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.volume = volume;
+      playerRef.current.muted = muted;
+    }
+  }, [volume, muted]);
+
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
 
   // コントロールの自動非表示
   const scheduleHide = useCallback(() => {
@@ -137,11 +138,12 @@ export function VideoPlayer({
   });
 
   const togglePlay = () => {
-    setPlaying(!playing);
-    if (!playing) {
-      onPlay?.();
+    const player = playerRef.current;
+    if (!player) return;
+    if (player.paused) {
+      player.play().catch(console.error);
     } else {
-      onPause?.();
+      player.pause();
     }
   };
 
@@ -200,7 +202,7 @@ export function VideoPlayer({
 
   const handleProgress = () => {
     const player = playerRef.current;
-    if (!player || seeking || !player.buffered?.length) return;
+    if (!player || seeking || !player.buffered.length) return;
 
     const loadedSeconds = player.buffered.end(player.buffered.length - 1);
     const loadedFraction = player.duration
@@ -223,20 +225,25 @@ export function VideoPlayer({
     setPlayed(playedFraction);
   };
 
+  const handleNativePlay = () => {
+    setPlaying(true);
+    onPlay?.();
+  };
+
+  const handleNativePause = () => {
+    setPlaying(false);
+    onPause?.();
+  };
+
   const handleEnded = () => {
     setPlaying(false);
     onEnded?.();
   };
 
-  const handleError = (error: unknown) => {
-    console.error('Video player error:', error);
-    onError?.(error instanceof Error ? error : new Error(String(error)));
+  const handleError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    console.error('Video player error:', e);
+    onError?.(new Error('動画の再生中にエラーが発生しました'));
   };
-
-  const setPlayerRef = useCallback((player: HTMLVideoElement | null) => {
-    if (!player) return;
-    playerRef.current = player;
-  }, []);
 
   const progress = played * 100;
   const buffered = loaded * 100;
@@ -257,23 +264,21 @@ export function VideoPlayer({
         togglePlay();
       }}
     >
-      {/* React Player */}
-      <ReactPlayer
-        ref={setPlayerRef}
+      {/* Native Video */}
+      <video
+        ref={playerRef}
         src={src}
-        playing={playing}
-        volume={muted ? 0 : volume}
-        playbackRate={playbackRate}
-        width="100%"
-        height="100%"
+        poster={poster}
+        playsInline
+        preload="metadata"
+        className="w-full h-full object-contain"
         onTimeUpdate={handleTimeUpdate}
         onProgress={handleProgress}
         onDurationChange={handleDurationChange}
+        onPlay={handleNativePlay}
+        onPause={handleNativePause}
         onEnded={handleEnded}
         onError={handleError}
-        light={poster}
-        playsInline
-        style={{ position: 'absolute', top: 0, left: 0 }}
       />
 
       {/* 大きな再生ボタン（停止中のみ表示） */}
