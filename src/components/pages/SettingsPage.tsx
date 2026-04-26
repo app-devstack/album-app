@@ -8,7 +8,14 @@ import { Loading } from '@/components/ui/loading';
 import { Separator } from '@/components/ui/separator';
 import { useGroupContext } from '@/contexts/GroupContext';
 import { signOut, useSession } from '@/lib/auth/auth-client';
-import { Bell, FileText, LogOut, Shield, UsersIcon } from 'lucide-react';
+import {
+  ArrowLeftRightIcon,
+  Bell,
+  FileText,
+  LogOut,
+  Shield,
+  UsersIcon,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function SettingsPage() {
@@ -52,12 +59,20 @@ export function SettingsPage() {
 
         <section aria-labelledby="section-groups-label">
           <SettingsSectionHeader label="グループ" />
-          <NavigateRow
-            icon={<UsersIcon size={16} />}
-            label="グループ設定"
-            description="グループの管理やグループの切り替え"
-            href={`/groups/${currentGroupId}/setting?from=settings`}
-          />
+          <div className="flex flex-col gap-2" id="section-groups-label">
+            <NavigateRow
+              icon={<UsersIcon size={16} />}
+              label="グループ設定"
+              description="グループの管理やメンバーの招待を行う"
+              href={`/groups/${currentGroupId}/setting?from=settings`}
+            />
+            <NavigateRow
+              icon={<ArrowLeftRightIcon size={16} />}
+              label="グループを切り替え"
+              description="所属しているグループを選び直す"
+              href="/"
+            />
+          </div>
         </section>
 
         <Separator />
