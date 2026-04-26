@@ -4,8 +4,14 @@ import { VideoPlayer } from '@/components/common/video-player';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Photo } from '@/db/schema';
+import { useRegenerateThumbnail } from '@/hooks/fetchers/use-photos';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Loader2Icon as SpinnerIcon, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Loader2Icon as SpinnerIcon,
+  Trash2,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 /** アルバム詳細ライトボックスに渡すプロパティ。 */
@@ -25,6 +31,8 @@ export function AlbumDetailLightboxDialog({
 }: AlbumDetailLightboxDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const { mutateAsync: regenerateThumbnail, isPending: isRegenerating } =
+    useRegenerateThumbnail();
 
   useEffect(() => {
     setImageLoaded(false);
@@ -40,6 +48,21 @@ export function AlbumDetailLightboxDialog({
       onClose();
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleRegenerateThumbnail = async () => {
+    if (!item || item.mediaType !== 'video') return;
+    if (!confirm('サムネイルを再生成しますか？')) return;
+
+    try {
+      await regenerateThumbnail({
+        photoId: item.id,
+        albumId: item.albumId,
+        videoUrl: item.url,
+      });
+    } catch (error) {
+      console.error('Thumbnail regeneration failed:', error);
     }
   };
 
@@ -72,17 +95,36 @@ export function AlbumDetailLightboxDialog({
           >
             <ArrowLeft className="size-5" />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 shrink-0 rounded-full text-foreground"
-            onClick={() => void handleDelete()}
-            disabled={isDeleting}
-            aria-label="このメディアを削除"
-          >
-            <Trash2 className="size-5" />
-          </Button>
+
+          <div className="flex items-center gap-1">
+            {item.mediaType === 'video' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-full text-foreground"
+                onClick={handleRegenerateThumbnail}
+                disabled={isRegenerating}
+                aria-label="サムネイルを再生成"
+              >
+                <RefreshCw
+                  className={cn('size-5', isRegenerating && 'animate-spin')}
+                />
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-full text-foreground"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              aria-label="このメディアを削除"
+            >
+              <Trash2 className="size-5" />
+            </Button>
+          </div>
         </div>
 
         <div
