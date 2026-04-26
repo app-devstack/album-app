@@ -11,7 +11,6 @@ import {
   resolveObjectPublicUrl,
 } from '@/lib/media-storage';
 import { getAcceptFormat } from '@/lib/photo/utils';
-import { streamManager } from '@/lib/stream';
 import { zValidator } from '@hono/zod-validator';
 import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
@@ -325,16 +324,6 @@ export const photosRouter = router
         return c.json({ error: '写真が見つかりません' }, 404);
       }
 
-      // Stream動画を削除（存在する場合）
-      if (photo.streamUid) {
-        try {
-          await streamManager.deleteVideo(photo.streamUid);
-        } catch (error) {
-          console.error('Stream delete error:', error);
-          // Stream削除エラーはログに記録するが、処理は続行
-        }
-      }
-
       // R2からファイルを削除
       if (photo.r2Key) {
         try {
@@ -358,67 +347,4 @@ export const photosRouter = router
         500
       );
     }
-  })
-  .post(
-    '/album/:albumId/stream-copy-from-r2',
-    zValidator('json', streamCopySchema),
-    async (c) => {
-      try {
-        const albumId = c.req.param('albumId');
-        const { photoId, r2Key } = c.req.valid('json');
-
-        // 写真が存在するか確認
-        const photo = await db.query.photos.findFirst({
-          where: eq(photos.id, photoId),
-        });
-
-        if (!photo) {
-          return c.json({ error: '写真が見つかりません' }, 404);
-        }
-
-        if (photo.albumId !== albumId) {
-          return c.json({ error: 'アルバムIDが一致しません' }, 400);
-        }
-
-        // R2のPresigned GET URLを生成（Stream取り込み用）
-        const r2GetUrl = await r2Manager.createPresignedGetUrl(r2Key, 3600);
-
-        // Stream APIでR2動画を取り込む（非同期処理、すぐにレスポンス）
-        const streamVideo = await streamManager.copyFromR2(r2GetUrl, {
-          photoId,
-          albumId,
-          originalFilename: r2Key.split('/').pop() || 'video',
-        });
-
-        // DBにstream_uidを保存（サムネイルとHLS URLは後で更新）
-        await db
-          .update(photos)
-          .set({
-            streamUid: streamVideo.uid,
-            thumbnailUrl: streamVideo.thumbnail,
-            url: streamVideo.playback.hls,
-            duration: streamVideo.duration || photo.duration,
-          })
-          .where(eq(photos.id, photoId))
-          .run();
-
-        return c.json({
-          success: true,
-          streamUid: streamVideo.uid,
-          status: streamVideo.status.state,
-          thumbnailUrl: streamVideo.thumbnail,
-          hlsUrl: streamVideo.playback.hls,
-          duration: streamVideo.duration,
-        });
-      } catch (error) {
-        console.error('Stream copy from R2 error:', error);
-        return c.json(
-          {
-            error: 'Stream取り込みに失敗しました',
-            message: error instanceof Error ? error.message : 'Unknown error',
-          },
-          500
-        );
-      }
-    }
-  );
+  });
