@@ -1,31 +1,51 @@
+import { Providers } from '@/components/layout/providers';
+import { Toaster } from '@/components/ui/toaster';
+import { cn } from '@/lib/utils';
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
 import { Noto_Sans_JP, Noto_Serif_JP } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/next';
-import { Providers } from "@/components/layout/providers";
 import './globals.css';
-import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: '思い出帳 — 共有フォトアルバム',
   description:
     '家族や大切な人と思い出の写真をシェアする、美しいフォトアルバムアプリ。',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
+        url: '/icon-32x32.png',
         media: '(prefers-color-scheme: light)',
+        sizes: '32x32',
+        type: 'image/png',
       },
       {
-        url: '/icon-dark-32x32.png',
+        url: '/icon-32x32.png',
         media: '(prefers-color-scheme: dark)',
+        sizes: '32x32',
+        type: 'image/png',
+      },
+      {
+        url: '/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+      },
+      {
+        url: '/icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
       },
       {
         url: '/icon.svg',
         type: 'image/svg+xml',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: [
+      {
+        url: '/apple-icon.png',
+        sizes: '180x180',
+        type: 'image/png',
+      },
+    ],
   },
 };
 
@@ -65,6 +85,7 @@ export default function RootLayout({
       >
         <Providers>{children}</Providers>
         <Analytics />
+        <Toaster />
       </body>
     </html>
   );
