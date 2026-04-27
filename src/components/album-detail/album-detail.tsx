@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
+import { albumKeys } from '@/hooks/fetchers/use-albums';
 import {
   useCreatePhoto,
   useDeletePhoto,
@@ -16,6 +17,7 @@ import {
 } from '@/lib/data';
 import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   CalendarDays,
   ChevronLeftIcon,
@@ -54,6 +56,7 @@ export function AlbumDetail({
   onAlbumUpdate,
   onAlbumDelete,
 }: AlbumDetailProps) {
+  const queryClient = useQueryClient();
   const { data: photos = [], isLoading: isLoadingPhotos } = usePhotos(album.id);
   const { mutateAsync: createPhotoMutation } = useCreatePhoto();
   const { mutateAsync: deletePhotoMutation } = useDeletePhoto();
@@ -114,6 +117,18 @@ export function AlbumDetail({
     const failed = results.filter((r) => r.status === 'rejected');
     if (failed.length > 0) {
       console.warn(`${failed.length}件のアップロードに失敗しました`);
+    }
+
+    const hasSuccess = results.some((r) => r.status === 'fulfilled');
+    if (hasSuccess && !album.coverUrl) {
+      // アルバム詳細の最新写真(latestPhoto)を更新するために再フェッチ
+      queryClient.invalidateQueries({ queryKey: albumKeys.detail(album.id) });
+      if (album.groupId) {
+        // 一覧画面に戻った際にも最新サムネイルが反映されるようにリストも無効化
+        queryClient.invalidateQueries({
+          queryKey: albumKeys.listGroupScope(album.groupId),
+        });
+      }
     }
 
     e.target.value = '';
