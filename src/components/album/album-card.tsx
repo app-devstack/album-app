@@ -62,7 +62,7 @@ export function AlbumCard({
           >
             {album.title}
           </h3>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="flex items-center gap-1.5">
             {album.location && (
               <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
                 <MapPin size={9} className="shrink-0" />
@@ -79,7 +79,7 @@ export function AlbumCard({
             </span> */}
 
             {/* 作成日 */}
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[10px] text-muted-foreground/80">
               {formatJapaneseDate(album.createdAt)}
             </span>
           </div>
