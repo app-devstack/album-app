@@ -3,25 +3,31 @@ import {
   UpdateAlbumSchema,
 } from '@/app/api/[[...route]]/routes/albums';
 import { Album } from '@/db/schema';
+import type { AlbumSortOrder } from '@/lib/album-sort-order';
 import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Query Keys
 export const albumKeys = {
   all: ['albums'] as const,
-  lists: (groupId: string) => [...albumKeys.all, 'list', groupId] as const,
+  /** 一覧1件: groupId + ソート。キャッシュを表示順別に分ける。 */
+  lists: (groupId: string, sortOrder: AlbumSortOrder) =>
+    [...albumKeys.all, 'list', groupId, sortOrder] as const,
+  /** そのグループの全ソート分の一覧をまとめて無効化するとき。 */
+  listGroupScope: (groupId: string) =>
+    [...albumKeys.all, 'list', groupId] as const,
   detail: (id: string) => [...albumKeys.all, 'detail', id] as const,
 };
 
 type CreateAlbumPayload = CreateAlbumSchema;
 
 // Fetchers
-const getAlbums = async (groupId: string) => {
-  const res = await api.albums.$get({ query: { groupId } });
+const getAlbums = async (groupId: string, sort: AlbumSortOrder) => {
+  const res = await api.albums.$get({ query: { groupId, sort } });
   if (!res.ok) {
     throw new Error('Failed to fetch albums');
   }
-  return res.json();
+  return await res.json();
 };
 
 const getAlbum = async (id: string) => {
@@ -60,10 +66,10 @@ const deleteAlbum = async (id: string): Promise<{ message: string }> => {
 };
 
 // Hooks
-export const useAlbums = (groupId: string) => {
+export const useAlbums = (groupId: string, sortOrder: AlbumSortOrder) => {
   return useQuery({
-    queryKey: albumKeys.lists(groupId),
-    queryFn: () => getAlbums(groupId),
+    queryKey: albumKeys.lists(groupId, sortOrder),
+    queryFn: () => getAlbums(groupId, sortOrder),
     enabled: !!groupId,
   });
 };
@@ -81,7 +87,9 @@ export const useCreateAlbum = (groupId: string) => {
   return useMutation({
     mutationFn: createAlbum,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: albumKeys.lists(groupId) });
+      queryClient.invalidateQueries({
+        queryKey: albumKeys.listGroupScope(groupId),
+      });
     },
   });
 };
@@ -91,7 +99,9 @@ export const useUpdateAlbum = (groupId: string) => {
   return useMutation({
     mutationFn: updateAlbum,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: albumKeys.lists(groupId) });
+      queryClient.invalidateQueries({
+        queryKey: albumKeys.listGroupScope(groupId),
+      });
       queryClient.invalidateQueries({ queryKey: albumKeys.detail(data.id) });
     },
   });
@@ -102,7 +112,9 @@ export const useDeleteAlbum = (groupId: string) => {
   return useMutation({
     mutationFn: deleteAlbum,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: albumKeys.lists(groupId) });
+      queryClient.invalidateQueries({
+        queryKey: albumKeys.listGroupScope(groupId),
+      });
     },
   });
 };

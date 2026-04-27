@@ -1,5 +1,10 @@
 import db from '@/db';
 import { albums, groupMembers, NewAlbum, photos } from '@/db/schema';
+import {
+  ALBUM_SORT_ORDER_VALUES,
+  DEFAULT_ALBUM_SORT_ORDER,
+  type AlbumSortOrder,
+} from '@/lib/album-sort-order';
 import { createApp } from '@/lib/api';
 import { getAlbumById, getAllAlbums } from '@/lib/service/albums';
 import { getSession } from '@/lib/service/auth';
@@ -29,6 +34,8 @@ const updateAlbumSchema = z.object({
 export type CreateAlbumSchema = z.infer<typeof createAlbumSchema>;
 export type UpdateAlbumSchema = z.infer<typeof updateAlbumSchema>;
 
+const albumListSortQuerySchema = z.enum(ALBUM_SORT_ORDER_VALUES).optional();
+
 // Albums Router
 const router = createApp();
 
@@ -49,7 +56,15 @@ export const albumsRouter = router
     });
     if (!membership) return c.json({ error: 'Forbidden' }, 403);
 
-    const albumsWithLatest = await getAllAlbums(groupId);
+    const sortParsed = albumListSortQuerySchema.safeParse(
+      c.req.query('sort') ?? undefined
+    );
+    if (!sortParsed.success) {
+      return c.json({ error: 'Invalid sort' }, 400);
+    }
+    const sort: AlbumSortOrder = sortParsed.data ?? DEFAULT_ALBUM_SORT_ORDER;
+
+    const albumsWithLatest = await getAllAlbums(groupId, sort);
     return c.json(
       albumsWithLatest.map(({ photos, ...alb }) => ({
         ...alb,

@@ -1,6 +1,7 @@
 'use client';
 
 import { AlbumCard } from '@/components/album/album-card';
+import { AlbumSortControl } from '@/components/album/album-sort-control';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Album } from '@/db/schema';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
@@ -83,6 +84,7 @@ export function AlbumGrid({
           </p>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-2 sm:pt-0.5">
+          <AlbumSortControl />
           <AlbumGridDensityToggle />
         </div>
       </div>
