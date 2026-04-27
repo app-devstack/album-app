@@ -2,11 +2,11 @@
 
 import { Album, Photo } from '@/db/schema';
 import { albumCoverImageSrc } from '@/lib/album-cover';
-import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
+import { type AccentColor } from '@/lib/data';
 import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import type { AlbumGridDensity } from '@/stores/albumListStore';
-import { MapPin, Users } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 /** アルバムカードに渡すプロパティ。 */
 interface AlbumCardProps {
@@ -19,11 +19,11 @@ interface AlbumCardProps {
 /** グリッド内の1アルバムをカード表示する。 */
 export function AlbumCard({
   album,
-  accent,
+  // accent,
   onClick,
   gridDensity = 'comfortable',
 }: AlbumCardProps) {
-  const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
+  // const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
   const coverSrc = albumCoverImageSrc(album);
 
   return (
@@ -44,19 +44,6 @@ export function AlbumCard({
         )}
         {/* グラデーションオーバーレイ */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-        {/* タイプバッジ */}
-        <div className="absolute top-2.5 right-2.5">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-white',
-              accentConfig.bg
-            )}
-          >
-            <Users size={10} />
-            共有
-          </span>
-        </div>
       </div>
 
       {/* カード情報 */}
