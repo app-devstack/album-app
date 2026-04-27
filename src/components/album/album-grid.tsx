@@ -1,9 +1,10 @@
 'use client';
 
 import { AlbumCard } from '@/components/album/album-card';
-import { AlbumSortControl } from '@/components/album/album-sort-control';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { AlbumGridDensityToggleButton } from '@/components/album/album-grid-density-toggle-button';
+import { AlbumGridSortControlButton } from '@/components/album/album-grid-sort-control-button';
 import { Album } from '@/db/schema';
+import { useFlipLayoutAnimation } from '@/hooks/use-flip-layout';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import {
@@ -24,43 +25,6 @@ const GRID_CLASS: Record<AlbumGridDensity, string> = {
   compact: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4',
 };
 
-/** 一覧ヘッダー右側の列数トグル（2列基準 / 3列基準）。 */
-function AlbumGridDensityToggle() {
-  const gridDensity = useAlbumListStore((s) => s.gridDensity);
-  const setGridDensity = useAlbumListStore((s) => s.setGridDensity);
-
-  return (
-    <ToggleGroup
-      type="single"
-      value={gridDensity}
-      onValueChange={(value) => {
-        if (value === 'comfortable' || value === 'compact') {
-          setGridDensity(value);
-        }
-      }}
-      variant="outline"
-      size="sm"
-      className="shrink-0"
-      aria-label="1行あたりの列数"
-    >
-      <ToggleGroupItem
-        value="comfortable"
-        className="px-2.5 text-xs sm:text-sm"
-        aria-label="2列表示（見やすさ優先）"
-      >
-        2列
-      </ToggleGroupItem>
-      <ToggleGroupItem
-        value="compact"
-        className="px-2.5 text-xs sm:text-sm"
-        aria-label="3列表示（一覧密度優先）"
-      >
-        3列
-      </ToggleGroupItem>
-    </ToggleGroup>
-  );
-}
-
 /** グループのアルバムをグリッドで一覧表示し、列密度の切り替えと新規作成 FAB を提供する。 */
 export function AlbumGrid({
   albums,
@@ -70,6 +34,8 @@ export function AlbumGrid({
 }: AlbumGridProps) {
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
   const gridDensity = useAlbumListStore((s) => s.gridDensity);
+  const { rootRef: gridRef, captureBeforeLayoutChange } =
+    useFlipLayoutAnimation({ layoutKey: gridDensity });
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
@@ -84,21 +50,27 @@ export function AlbumGrid({
           </p>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-2 sm:pt-0.5">
-          <AlbumSortControl />
-          <AlbumGridDensityToggle />
+          {/* 列密度トグルボタン */}
+          <AlbumGridDensityToggleButton
+            onBeforeDensityChange={captureBeforeLayoutChange}
+          />
+
+          {/* ソートコントロールボタン */}
+          <AlbumGridSortControlButton />
         </div>
       </div>
 
       {/* グリッド */}
-      <div className={cn('grid', GRID_CLASS[gridDensity])}>
+      <div ref={gridRef} className={cn('grid', GRID_CLASS[gridDensity])}>
         {albums.map((album) => (
-          <AlbumCard
-            key={album.id}
-            album={album}
-            accent={accent}
-            gridDensity={gridDensity}
-            onClick={() => onAlbumClick(album)}
-          />
+          <div key={album.id} data-flip-item className="min-w-0">
+            <AlbumCard
+              album={album}
+              accent={accent}
+              gridDensity={gridDensity}
+              onClick={() => onAlbumClick(album)}
+            />
+          </div>
         ))}
       </div>
 

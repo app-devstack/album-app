@@ -54,7 +54,7 @@ function SortTriggerButton({
 }
 
 /** 作成日基準の一覧ソート。デスクトップはドロップダウン、モバイルはボトムシート。 */
-export function AlbumSortControl() {
+export function AlbumGridSortControlButton() {
   const sortOrder = useAlbumListStore((s) => s.sortOrder);
   const setSortOrder = useAlbumListStore((s) => s.setSortOrder);
   const isMobile = useIsMobile();
