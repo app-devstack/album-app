@@ -10,7 +10,8 @@ import {
   r2Manager,
   resolveObjectPublicUrl,
 } from '@/lib/media-storage';
-import { getAcceptFormat } from '@/lib/photo/utils';
+import type { OptimizedImageMode } from '@/lib/photo/fetch-optimized-image';
+import { fetchOptimizedImageResponse } from '@/lib/photo/fetch-optimized-image';
 import { zValidator } from '@hono/zod-validator';
 import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
@@ -101,7 +102,8 @@ export const photosRouter = router
   })
   .get('/:photoId/optimized', async (c) => {
     const photoId = c.req.param('photoId');
-    const mode = c.req.query('mode') || 'thumb'; // 'thumb' or 'full'
+    const modeParam = c.req.query('mode') ?? 'thumb';
+    const mode: OptimizedImageMode = modeParam === 'full' ? 'full' : 'thumb';
 
     const photoData = await db.query.photos.findFirst({
       where: eq(photos.id, photoId),
@@ -111,47 +113,10 @@ export const photosRouter = router
       return c.json({ error: 'Photo not found' }, 404);
     }
 
-    const isThumb = mode === 'thumb';
-
-    const accept = c.req.header('Accept') ?? '';
-    const format = getAcceptFormat(accept);
-
-    const imageOptions = {
-      width: isThumb ? 400 : 1920,
-      height: isThumb ? 400 : undefined,
-      fit: isThumb ? 'cover' : 'scale-down',
-      quality: isThumb ? 75 : 85,
-      format, // 'avif' | 'webp' | 'jpeg' | 'png' | 'svg' | undefined
-    } satisfies RequestInitCfPropertiesImage;
-
     const sourceUrl = photoData.thumbnailUrl || photoData.url;
 
-    try {
-      // Cloudflare Image Resizing を適用して fetch
-      const response = await fetch(sourceUrl, {
-        cf: {
-          image: imageOptions,
-        },
-      });
-
-      if (!response.ok) {
-        console.error(`Failed to fetch source image: ${response.status}`);
-        return c.text('Failed to process image', 500);
-      }
-
-      // レスポンスの返却（キャッシュヘッダーを付与）
-      const res = new Response(response.body, response);
-      res.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-      res.headers.set(
-        'Content-Type',
-        response.headers.get('Content-Type') || 'image/webp'
-      );
-
-      return res;
-    } catch (error) {
-      console.error('Image optimization error:', error);
-      return c.text('Internal Server Error', 500);
-    }
+    const accept = c.req.header('Accept') ?? '';
+    return fetchOptimizedImageResponse(sourceUrl, mode, accept);
   })
   .get('/album/:albumId', async (c) => {
     const albumId = c.req.param('albumId');

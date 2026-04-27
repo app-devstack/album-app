@@ -6,6 +6,8 @@ import {
   type AlbumSortOrder,
 } from '@/lib/album-sort-order';
 import { createApp } from '@/lib/api';
+import type { OptimizedImageMode } from '@/lib/photo/fetch-optimized-image';
+import { fetchOptimizedImageResponse } from '@/lib/photo/fetch-optimized-image';
 import { getAlbumById, getAllAlbums } from '@/lib/service/albums';
 import { getSession } from '@/lib/service/auth';
 import { zValidator } from '@hono/zod-validator';
@@ -80,6 +82,50 @@ export const albumsRouter = router
     }
     const { photos: ph, ...alb } = result;
     return c.json({ ...alb, latestPhoto: ph[0] ?? null });
+  })
+  .get('/:id/cover-optimized', async (c) => {
+    const session = await getSession(c.req.raw.headers);
+    if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+    const id = c.req.param('id');
+    const modeParam = c.req.query('mode') ?? 'thumb';
+    if (modeParam !== 'thumb' && modeParam !== 'full') {
+      return c.json({ error: 'Invalid mode' }, 400);
+    }
+    const mode: OptimizedImageMode = modeParam;
+
+    const album = await getAlbumById(id);
+    if (!album) {
+      return c.json({ message: 'Album not found' }, 404);
+    }
+
+    const groupId = album.groupId;
+    if (groupId) {
+      const membership = await db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.userId, session.user.id)
+        ),
+      });
+      if (!membership) return c.json({ error: 'Forbidden' }, 403);
+    } else if (album.userId !== session.user.id) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    const customCover = album.coverUrl?.trim();
+    const latest = album.photos[0] ?? null;
+    let sourceUrl: string | null = null;
+    if (customCover) {
+      sourceUrl = customCover;
+    } else if (latest?.url) {
+      sourceUrl = latest.thumbnailUrl || latest.url;
+    }
+    if (!sourceUrl) {
+      return c.json({ error: 'Cover source not found' }, 404);
+    }
+
+    const accept = c.req.header('Accept') ?? '';
+    return fetchOptimizedImageResponse(sourceUrl, mode, accept);
   })
   .post('/', zValidator('json', createAlbumSchema), async (c) => {
     const session = await getSession(c.req.raw.headers);

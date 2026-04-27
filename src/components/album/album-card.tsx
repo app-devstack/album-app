@@ -70,9 +70,7 @@ export function AlbumCard({
           <h3
             className={cn(
               'font-medium text-foreground truncate leading-snug',
-              gridDensity === 'compact'
-                ? 'text-xs sm:text-sm'
-                : 'text-sm'
+              gridDensity === 'compact' ? 'text-xs sm:text-sm' : 'text-sm'
             )}
           >
             {album.title}
