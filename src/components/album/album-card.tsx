@@ -5,15 +5,24 @@ import { albumCoverImageSrc } from '@/lib/album-cover';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
+import type { AlbumGridDensity } from '@/stores/albumListStore';
 import { MapPin, Users } from 'lucide-react';
 
+/** アルバムカードに渡すプロパティ。 */
 interface AlbumCardProps {
   album: Album & { latestPhoto?: Photo | null };
   accent: AccentColor;
   onClick: () => void;
+  gridDensity?: AlbumGridDensity; // compact 時はタイポ・余白を一段詰める
 }
 
-export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
+/** グリッド内の1アルバムをカード表示する。 */
+export function AlbumCard({
+  album,
+  accent,
+  onClick,
+  gridDensity = 'comfortable',
+}: AlbumCardProps) {
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
   const coverSrc = albumCoverImageSrc(album);
 
@@ -51,9 +60,21 @@ export function AlbumCard({ album, accent, onClick }: AlbumCardProps) {
       </div>
 
       {/* カード情報 */}
-      <div className="mt-2.5 flex items-start justify-between gap-2">
+      <div
+        className={cn(
+          'flex items-start justify-between gap-2',
+          gridDensity === 'compact' ? 'mt-2' : 'mt-2.5'
+        )}
+      >
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-medium text-foreground truncate leading-snug">
+          <h3
+            className={cn(
+              'font-medium text-foreground truncate leading-snug',
+              gridDensity === 'compact'
+                ? 'text-xs sm:text-sm'
+                : 'text-sm'
+            )}
+          >
             {album.title}
           </h3>
           <div className="flex items-center gap-1.5 mt-0.5">
