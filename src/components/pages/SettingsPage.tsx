@@ -3,7 +3,6 @@
 import { NavigateRow } from '@/components/common/navigate-row';
 import SettingsAccountInfo from '@/components/settings/settings-account-info';
 import { SettingsSectionHeader } from '@/components/settings/settings-section-header';
-import { SettingsThemeColorSelect } from '@/components/settings/settings-theme-color-select';
 import { Loading } from '@/components/ui/loading';
 import { Separator } from '@/components/ui/separator';
 import { useGroupContext } from '@/contexts/GroupContext';
@@ -77,12 +76,13 @@ export function SettingsPage() {
 
         <Separator />
 
-        <section aria-labelledby="section-appearance-label">
+        {/* ※SP時、テーマカラーのドロップダウンが開きやすく、また開いているとスクロールできないのでコメントアウト。UX改善が必要。 */}
+        {/* <section aria-labelledby="section-appearance-label">
           <SettingsSectionHeader label="表示" />
           <div className="flex flex-col gap-3" id="section-appearance-label">
             <SettingsThemeColorSelect />
           </div>
-        </section>
+        </section> */}
 
         <section aria-labelledby="section-info-label">
           <SettingsSectionHeader label="アプリ情報" />
