@@ -27,7 +27,12 @@ import {
   useUpdateMemberRole,
 } from '@/hooks/fetchers/use-groups';
 import { groupRoleLabelJa, isGroupAdmin } from '@/lib/group-role';
-import { ChevronLeftIcon, Pencil, UserPlus } from 'lucide-react';
+import {
+  ArrowLeftRightIcon,
+  ChevronLeftIcon,
+  Pencil,
+  UserPlus,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -222,7 +227,7 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
         </section>
 
         {/* その他 */}
-        {/* <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-3">
           <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             その他
           </h2>
@@ -234,7 +239,7 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
               href="/"
             />
           </div>
-        </section> */}
+        </section>
       </div>
 
       {/* グループ名編集ダイアログ */}
