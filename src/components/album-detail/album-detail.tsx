@@ -27,7 +27,8 @@ import {
   MapPin,
   Plus,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
+import { AlbumDetailAddMediaDialog } from './album-detail-add-media-dialog';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
 import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
 import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
@@ -65,7 +66,7 @@ export function AlbumDetail({
   const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
   const [editTitle, setEditTitle] = useState(album.title);
   const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [addMediaOpen, setAddMediaOpen] = useState(false);
 
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
 
@@ -73,8 +74,7 @@ export function AlbumDetail({
     await deletePhotoMutation(photoId);
   };
 
-  const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+  const handleAddMediaFiles = async (files: File[]) => {
     if (!files.length) return;
 
     // 全ファイルをアップロード中リストに追加
@@ -131,7 +131,6 @@ export function AlbumDetail({
       }
     }
 
-    e.target.value = '';
   };
 
   const handleSaveSettings = async () => {
@@ -168,22 +167,20 @@ export function AlbumDetail({
           photos={photos}
           uploadingItems={uploadingItems}
           accentConfig={accentConfig}
-          onAddClick={() => fileInputRef.current?.click()}
+          onAddClick={() => setAddMediaOpen(true)}
           onOpenLightbox={setLightboxItem}
         />
 
         <AlbumDetailMemoSection
           accentConfig={accentConfig}
-          onAddPhoto={() => fileInputRef.current?.click()}
+          onAddPhoto={() => setAddMediaOpen(true)}
         />
 
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleAddMedia}
-          className="hidden"
-          multiple
-          accept="image/*,video/*"
+        <AlbumDetailAddMediaDialog
+          open={addMediaOpen}
+          onOpenChange={setAddMediaOpen}
+          onFilesSelected={handleAddMediaFiles}
+          accentConfig={accentConfig}
         />
 
         <AlbumDetailLightboxDialog
@@ -356,8 +353,8 @@ function EmptyMediaState({ accentConfig, onAddClick }: EmptyMediaStateProps) {
         )}
         onClick={onAddClick}
       >
-        <Plus size={13} />
-        追加する
+        <Plus size={13} aria-hidden />
+        メディアを追加
       </Button>
     </div>
   );
