@@ -2,6 +2,7 @@
 
 import { GroupJoin } from '@/components/group/group-join';
 import { GroupJoinExpired } from '@/components/group/group-join-expired';
+import { GroupJoinFetchError } from '@/components/group/group-join-fetch-error';
 import { GroupJoinNotFound } from '@/components/group/group-join-not-found';
 import { useJoinInfo } from '@/hooks/fetchers/use-join';
 
@@ -20,6 +21,7 @@ export function JoinPage({ token }: JoinPageProps) {
     if (err.status === 410) {
       return <GroupJoinExpired />;
     }
+    return <GroupJoinFetchError />;
   }
 
   return <GroupJoin token={token} />;

@@ -3,6 +3,7 @@
 import { AppTitle } from '@/components/layout/app-title';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { GroupJoinFetchError } from '@/components/group/group-join-fetch-error';
 import { Loading } from '@/components/ui/loading';
 import { useJoinGroup, useJoinInfo } from '@/hooks/fetchers/use-join';
 import { formatJapaneseDate } from '@/lib/date';
@@ -25,7 +26,7 @@ type JoinState = 'idle' | 'loading' | 'joined';
 
 export function GroupJoin({ token }: GroupJoinProps) {
   const router = useRouter();
-  const { data: group, isPending } = useJoinInfo(token);
+  const { data: group, isPending, isError } = useJoinInfo(token);
   const { mutateAsync: joinGroup } = useJoinGroup();
   const [joinState, setJoinState] = useState<JoinState>('idle');
 
@@ -50,7 +51,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
     router.push('/');
   };
 
-  if (isPending || !group) {
+  if (isPending) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden bg-login-bg">
         <PetalDecoration />
@@ -68,6 +69,10 @@ export function GroupJoin({ token }: GroupJoinProps) {
         </footer>
       </div>
     );
+  }
+
+  if (isError || !group) {
+    return <GroupJoinFetchError />;
   }
 
   return (

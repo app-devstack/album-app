@@ -12,6 +12,10 @@ interface LoadingProps {
   foregroundClassName?: string;
 }
 
+/**
+ * スピナーとメッセージでデータ取得中などを示す共通 UI。
+ * ラッパーにライブリージョンを付与し、スピナーは装飾として隠して読み上げは文言に一本化する。
+ */
 function Loading({
   message = '読み込み中...',
   className,
@@ -20,6 +24,10 @@ function Loading({
 }: LoadingProps) {
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-atomic="true"
       className={cn(
         'flex flex-col items-center justify-center gap-3',
         variant === 'page' && 'min-h-screen bg-background',
@@ -27,7 +35,10 @@ function Loading({
         className
       )}
     >
-      <Spinner className={cn('size-8', foregroundClassName)} />
+      <Spinner
+        aria-hidden
+        className={cn('size-8', foregroundClassName)}
+      />
       {message ? (
         <p className={cn('text-sm font-sans', foregroundClassName)}>
           {message}
