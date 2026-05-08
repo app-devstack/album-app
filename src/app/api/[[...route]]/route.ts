@@ -2,6 +2,7 @@ import { createApp } from '@/lib/api';
 import { handle } from 'hono/vercel';
 import { albumsRouter } from './routes/albums';
 import { authRouter } from './routes/auth';
+import { downloadRouter } from './routes/download';
 import { groupsRouter } from './routes/groups';
 import { joinRouter } from './routes/join';
 import { memosRouter } from './routes/memos';
@@ -22,6 +23,7 @@ const route = app
   .route('/albums', albumsRouter)
   .route('/groups', groupsRouter)
   .route('/join', joinRouter)
+  .route('/download', downloadRouter)
   .route('/photos', photosRouter)
   .route('/memos', memosRouter)
   .route('/profile', profileRouter);
