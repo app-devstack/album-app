@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { useGroupContext } from '@/contexts/GroupContext';
 import { useCreateGroup, useGroups } from '@/hooks/fetchers/use-groups';
 import { groupRoleLabelJa } from '@/lib/group-role';
@@ -51,9 +52,7 @@ export default function GroupSelectPage() {
         {/* グループ一覧 */}
         <div className="flex flex-col gap-2">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              読み込み中...
-            </p>
+            <Loading variant="section" className="py-6" />
           ) : groups && groups.length > 0 ? (
             groups.map((group) => (
               <button

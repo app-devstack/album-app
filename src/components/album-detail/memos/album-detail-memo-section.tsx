@@ -2,6 +2,7 @@
 
 import { AlbumDetailStickyActions } from '@/components/album-detail/album-detail-sticky-actions';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import { useAlbumMemoContext } from '@/contexts/album-memo-context';
 import { type AccentColorConfig } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -45,7 +46,7 @@ export function AlbumDetailMemoSection({
   return (
     <>
       {isLoadingMemos ? (
-        <div>Loading memos...</div>
+        <Loading variant="section" message="メモを読み込み中..." className="py-10" />
       ) : (
         <AlbumMemos
           accentConfig={accentConfig}
