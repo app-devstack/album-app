@@ -58,7 +58,7 @@ export default function AlbumDetailPage({ albumId }: AlbumDetailPageProps) {
       const q = new URLSearchParams(searchParams.toString());
       q.delete('photo');
       const s = q.toString();
-      router.replace(s ? `${pathname}?${s}` : pathname);
+      router.replace(s ? `${pathname}?${s}` : pathname, { scroll: false });
     }
   }, [pathname, router, searchParams]);
 
@@ -68,7 +68,7 @@ export default function AlbumDetailPage({ albumId }: AlbumDetailPageProps) {
     const q = new URLSearchParams(searchParams.toString());
     q.delete('photo');
     const s = q.toString();
-    router.replace(s ? `${pathname}?${s}` : pathname);
+    router.replace(s ? `${pathname}?${s}` : pathname, { scroll: false });
   }, [pathname, router, searchParams]);
 
   const handleBack = () => {
