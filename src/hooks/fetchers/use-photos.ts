@@ -23,11 +23,14 @@ const getPhotos = async (albumId: string): Promise<Photo[]> => {
 
 interface CreatePhotoPayload extends Omit<NewPhoto, 'id' | 'addedAt' | 'url'> {
   file: File;
+  /** 送信時のみ。画像の複数選択順を表す ISO 文字列。 */
+  addedAt?: string;
 }
 
 const createPhoto = async ({
   albumId,
   file,
+  addedAt,
   ...photoData
 }: CreatePhotoPayload): Promise<Photo> => {
   const fileSize = (file.size / 1024 / 1024).toFixed(2);
@@ -106,7 +109,12 @@ const createPhoto = async ({
   // 4. Save photo metadata to the database (URL will be generated from R2 key on server)
   const res = await api.photos.album[':albumId'].$post({
     param: { albumId },
-    json: { ...photoData, r2Key: key, thumbnailR2Key },
+    json: {
+      ...photoData,
+      r2Key: key,
+      thumbnailR2Key,
+      ...(addedAt !== undefined ? { addedAt } : {}),
+    },
   });
   if (!res.ok) {
     throw new Error('Failed to create photo');

@@ -1,6 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
 import { albumKeys } from '@/hooks/fetchers/use-albums';
@@ -65,7 +72,11 @@ export function AlbumDetail({
   const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
   const [editTitle, setEditTitle] = useState(album.title);
   const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [addMediaDialogOpen, setAddMediaDialogOpen] = useState(false);
+  /** ファイル確定〜バッチ完了まで。ダイアログクローズや二重取得を抑止する。 */
+  const [mediaUploadInProgress, setMediaUploadInProgress] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
 
@@ -73,62 +84,73 @@ export function AlbumDetail({
     await deletePhotoMutation(photoId);
   };
 
-  const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddMediaBatch = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    mode: 'image' | 'video'
+  ) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
 
-    // 全ファイルをアップロード中リストに追加
+    const addedAtBase = Date.now();
+    const mediaType = mode === 'video' ? 'video' : 'image';
+
     const uploadTasks = files.map((file) => ({
       tempId: `${Date.now()}-${Math.random()}-${file.name}`,
       fileName: file.name,
       file,
     }));
 
+    setMediaUploadInProgress(true);
     setUploadingItems((prev) => [
       ...prev,
       ...uploadTasks.map(({ tempId, fileName }) => ({ tempId, fileName })),
     ]);
 
-    // 並列アップロード
-    const results = await Promise.allSettled(
-      uploadTasks.map(async ({ tempId, file }) => {
-        const isVideo = file.type.startsWith('video/');
-        try {
-          await createPhotoMutation({
-            albumId: album.id,
-            file,
-            alt: file.name.replace(/\.[^.]+$/, ''),
-            mediaType: isVideo ? 'video' : 'image',
-          });
-          setUploadingItems((prev) =>
-            prev.filter((item) => item.tempId !== tempId)
-          );
-        } catch (error) {
-          console.error(`Failed to upload ${file.name}:`, error);
-          setUploadingItems((prev) =>
-            prev.filter((item) => item.tempId !== tempId)
-          );
-          throw error;
-        }
-      })
-    );
+    try {
+      const results = await Promise.allSettled(
+        uploadTasks.map(async ({ tempId, file }, index) => {
+          try {
+            await createPhotoMutation({
+              albumId: album.id,
+              file,
+              alt: file.name.replace(/\.[^.]+$/, ''),
+              mediaType,
+              ...(mode === 'image'
+                ? {
+                    addedAt: new Date(addedAtBase + index).toISOString(),
+                  }
+                : {}),
+            });
+            setUploadingItems((prev) =>
+              prev.filter((item) => item.tempId !== tempId)
+            );
+          } catch (error) {
+            console.error(`Failed to upload ${file.name}:`, error);
+            setUploadingItems((prev) =>
+              prev.filter((item) => item.tempId !== tempId)
+            );
+            throw error;
+          }
+        })
+      );
 
-    // 失敗したファイルがあればログ出力
-    const failed = results.filter((r) => r.status === 'rejected');
-    if (failed.length > 0) {
-      console.warn(`${failed.length}件のアップロードに失敗しました`);
-    }
-
-    const hasSuccess = results.some((r) => r.status === 'fulfilled');
-    if (hasSuccess && !album.coverUrl) {
-      // アルバム詳細の最新写真(latestPhoto)を更新するために再フェッチ
-      queryClient.invalidateQueries({ queryKey: albumKeys.detail(album.id) });
-      if (album.groupId) {
-        // 一覧画面に戻った際にも最新サムネイルが反映されるようにリストも無効化
-        queryClient.invalidateQueries({
-          queryKey: albumKeys.listGroupScope(album.groupId),
-        });
+      const failed = results.filter((r) => r.status === 'rejected');
+      if (failed.length > 0) {
+        console.warn(`${failed.length}件のアップロードに失敗しました`);
       }
+
+      const hasSuccess = results.some((r) => r.status === 'fulfilled');
+      if (hasSuccess && !album.coverUrl) {
+        queryClient.invalidateQueries({ queryKey: albumKeys.detail(album.id) });
+        if (album.groupId) {
+          queryClient.invalidateQueries({
+            queryKey: albumKeys.listGroupScope(album.groupId),
+          });
+        }
+      }
+    } finally {
+      setMediaUploadInProgress(false);
+      setAddMediaDialogOpen(false);
     }
 
     e.target.value = '';
@@ -168,23 +190,89 @@ export function AlbumDetail({
           photos={photos}
           uploadingItems={uploadingItems}
           accentConfig={accentConfig}
-          onAddClick={() => fileInputRef.current?.click()}
+          onAddClick={() => setAddMediaDialogOpen(true)}
           onOpenLightbox={setLightboxItem}
         />
 
         <AlbumDetailMemoSection
           accentConfig={accentConfig}
-          onAddPhoto={() => fileInputRef.current?.click()}
+          onAddPhoto={() => setAddMediaDialogOpen(true)}
         />
 
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleAddMedia}
-          className="hidden"
-          multiple
-          accept="image/*,video/*"
-        />
+        <Dialog
+          open={addMediaDialogOpen}
+          onOpenChange={(open) => {
+            if (!open && mediaUploadInProgress) return;
+            setAddMediaDialogOpen(open);
+          }}
+        >
+          <DialogContent
+            showCloseButton={!mediaUploadInProgress}
+            onPointerDownOutside={(ev) =>
+              mediaUploadInProgress && ev.preventDefault()
+            }
+            onEscapeKeyDown={(ev) =>
+              mediaUploadInProgress && ev.preventDefault()
+            }
+            onInteractOutside={(ev) =>
+              mediaUploadInProgress && ev.preventDefault()
+            }
+          >
+            <DialogHeader>
+              <DialogTitle>メディアを追加</DialogTitle>
+              <DialogDescription>
+                追加する種類を選び、ファイルを選択してください。
+              </DialogDescription>
+            </DialogHeader>
+            {mediaUploadInProgress ? (
+              <p className="text-sm text-muted-foreground rounded-md border border-border bg-muted/40 px-3 py-2">
+                アップロード処理中です。完了までお待ちください。他の操作は完了後にご利用いただけます。
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                size="default"
+                className={cn(
+                  'flex-1 gap-1.5 text-white',
+                  accentConfig.bg,
+                  accentConfig.bgHover
+                )}
+                disabled={mediaUploadInProgress}
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <ImagePlus size={18} aria-hidden />
+                写真を追加
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 gap-2"
+                disabled={mediaUploadInProgress}
+                onClick={() => videoInputRef.current?.click()}
+              >
+                <Film size={18} aria-hidden />
+                動画を追加
+              </Button>
+            </div>
+            <input
+              type="file"
+              ref={imageInputRef}
+              onChange={(ev) => void handleAddMediaBatch(ev, 'image')}
+              className="hidden"
+              multiple
+              accept="image/*"
+            />
+            <input
+              type="file"
+              ref={videoInputRef}
+              onChange={(ev) => void handleAddMediaBatch(ev, 'video')}
+              className="hidden"
+              multiple
+              accept="video/*"
+            />
+          </DialogContent>
+        </Dialog>
 
         <AlbumDetailLightboxDialog
           item={lightboxItem}

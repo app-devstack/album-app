@@ -14,7 +14,7 @@ import type { OptimizedImageMode } from '@/lib/photo/fetch-optimized-image';
 import { fetchOptimizedImageResponse } from '@/lib/photo/fetch-optimized-image';
 import { zValidator } from '@hono/zod-validator';
 import { env } from 'cloudflare:workers';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
@@ -33,6 +33,8 @@ const createPhotoSchema = z.object({
   duration: z.number().nullable().optional(),
   r2Key: z.string(),
   thumbnailR2Key: z.string().optional(),
+  /** クライアントが選択順などを表す ISO 文字列。未指定時はサーバが現在時刻を使用。 */
+  addedAt: z.string().optional(),
 });
 
 const updateThumbnailSchema = z.object({
@@ -124,6 +126,7 @@ export const photosRouter = router
       .select()
       .from(photos)
       .where(eq(photos.albumId, albumId))
+      .orderBy(asc(photos.addedAt), asc(photos.id))
       .all();
     return c.json(albumPhotos);
   })
@@ -274,7 +277,7 @@ export const photosRouter = router
       duration: body.duration ?? null,
       r2Key: body.r2Key,
       streamUid: null,
-      addedAt: new Date().toISOString(),
+      addedAt: body.addedAt ?? new Date().toISOString(),
     };
     await db.insert(photos).values(newPhoto).run();
     return c.json(newPhoto, 201);
