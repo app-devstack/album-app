@@ -12,6 +12,7 @@ next.user-config.*
 .env
 .dev.vars
 .secrets.json
+.env.production
 
 # Common ignores
 node_modules
@@ -26,6 +27,10 @@ node_modules
 .agents/
 .augment/
 .prompts/
+.cursor/
+.claude/
+CLAUDE.md
 
 # misc
 .notes/
+tsconfig.tsbuildinfo
