@@ -1,13 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
 import { albumKeys } from '@/hooks/fetchers/use-albums';
@@ -34,8 +27,9 @@ import {
   MapPin,
   Plus,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
+import { AlbumDetailAddMediaDialog } from './album-detail-add-media-dialog';
 import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
 import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
 import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
@@ -75,9 +69,6 @@ export function AlbumDetail({
   const [addMediaDialogOpen, setAddMediaDialogOpen] = useState(false);
   /** ファイル確定〜バッチ完了まで。ダイアログクローズや二重取得を抑止する。 */
   const [mediaUploadInProgress, setMediaUploadInProgress] = useState(false);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
 
   const handleDeletePhoto = async (photoId: string) => {
@@ -199,80 +190,14 @@ export function AlbumDetail({
           onAddPhoto={() => setAddMediaDialogOpen(true)}
         />
 
-        <Dialog
+        <AlbumDetailAddMediaDialog
           open={addMediaDialogOpen}
-          onOpenChange={(open) => {
-            if (!open && mediaUploadInProgress) return;
-            setAddMediaDialogOpen(open);
-          }}
-        >
-          <DialogContent
-            showCloseButton={!mediaUploadInProgress}
-            onPointerDownOutside={(ev) =>
-              mediaUploadInProgress && ev.preventDefault()
-            }
-            onEscapeKeyDown={(ev) =>
-              mediaUploadInProgress && ev.preventDefault()
-            }
-            onInteractOutside={(ev) =>
-              mediaUploadInProgress && ev.preventDefault()
-            }
-          >
-            <DialogHeader>
-              <DialogTitle>メディアを追加</DialogTitle>
-              <DialogDescription>
-                追加する種類を選び、ファイルを選択してください。
-              </DialogDescription>
-            </DialogHeader>
-            {mediaUploadInProgress ? (
-              <p className="text-sm text-muted-foreground rounded-md border border-border bg-muted/40 px-3 py-2">
-                アップロード処理中です。完了までお待ちください。他の操作は完了後にご利用いただけます。
-              </p>
-            ) : null}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                type="button"
-                size="default"
-                className={cn(
-                  'flex-1 gap-1.5 text-white',
-                  accentConfig.bg,
-                  accentConfig.bgHover
-                )}
-                disabled={mediaUploadInProgress}
-                onClick={() => imageInputRef.current?.click()}
-              >
-                <ImagePlus size={18} aria-hidden />
-                写真を追加
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 gap-2"
-                disabled={mediaUploadInProgress}
-                onClick={() => videoInputRef.current?.click()}
-              >
-                <Film size={18} aria-hidden />
-                動画を追加
-              </Button>
-            </div>
-            <input
-              type="file"
-              ref={imageInputRef}
-              onChange={(ev) => void handleAddMediaBatch(ev, 'image')}
-              className="hidden"
-              multiple
-              accept="image/*"
-            />
-            <input
-              type="file"
-              ref={videoInputRef}
-              onChange={(ev) => void handleAddMediaBatch(ev, 'video')}
-              className="hidden"
-              multiple
-              accept="video/*"
-            />
-          </DialogContent>
-        </Dialog>
+          onOpenChange={setAddMediaDialogOpen}
+          mediaUploadInProgress={mediaUploadInProgress}
+          accentConfig={accentConfig}
+          onImageChange={(ev) => void handleAddMediaBatch(ev, 'image')}
+          onVideoChange={(ev) => void handleAddMediaBatch(ev, 'video')}
+        />
 
         <AlbumDetailLightboxDialog
           item={lightboxItem}
