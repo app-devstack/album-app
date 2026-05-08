@@ -30,6 +30,7 @@ import {
 import { useRef, useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
 import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
+import { useAlbumLightboxHistory } from './use-album-lightbox-history';
 import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
 import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
 import { AlbumDetailUploadingOverlay } from './album-detail-uploading-overlay';
@@ -62,7 +63,12 @@ export function AlbumDetail({
   const { mutateAsync: deletePhotoMutation } = useDeletePhoto();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
+  const {
+    lightboxItem,
+    openLightbox,
+    dismissLightbox,
+    closeLightboxAfterDelete,
+  } = useAlbumLightboxHistory(photos);
   const [editTitle, setEditTitle] = useState(album.title);
   const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -169,7 +175,7 @@ export function AlbumDetail({
           uploadingItems={uploadingItems}
           accentConfig={accentConfig}
           onAddClick={() => fileInputRef.current?.click()}
-          onOpenLightbox={setLightboxItem}
+          onOpenLightbox={openLightbox}
         />
 
         <AlbumDetailMemoSection
@@ -189,7 +195,8 @@ export function AlbumDetail({
         <AlbumDetailLightboxDialog
           item={lightboxItem}
           accentText={accentConfig.text}
-          onClose={() => setLightboxItem(null)}
+          onDismiss={dismissLightbox}
+          onCloseAfterDelete={closeLightboxAfterDelete}
           onDelete={async () => {
             if (!lightboxItem) return;
             await handleDeletePhoto(lightboxItem.id);

@@ -17,7 +17,10 @@ import { useEffect, useState } from 'react';
 /** アルバム詳細ライトボックスに渡すプロパティ。 */
 export interface AlbumDetailLightboxDialogProps {
   item: Photo | null; // 表示する写真または動画
-  onClose: () => void; // 閉じる
+  /** 戻る・オーバーレイ・Esc。履歴があれば browser と整合した閉じ方をする */
+  onDismiss: () => void;
+  /** 削除成功後（履歴を戻す／URL を直す） */
+  onCloseAfterDelete: () => void;
   onDelete: () => Promise<void>; // 確認後に実行する削除処理
   accentText: string; // useAccentStore 連動の ACCENT_COLORS.text（例: text-rose-500）
 }
@@ -25,7 +28,8 @@ export interface AlbumDetailLightboxDialogProps {
 /** タップで開くフルスクリーンに近いメディアビューア。上部に戻る・削除を表示する。 */
 export function AlbumDetailLightboxDialog({
   item,
-  onClose,
+  onDismiss,
+  onCloseAfterDelete,
   onDelete,
   accentText,
 }: AlbumDetailLightboxDialogProps) {
@@ -45,7 +49,7 @@ export function AlbumDetailLightboxDialog({
     setIsDeleting(true);
     try {
       await onDelete();
-      onClose();
+      onCloseAfterDelete();
     } finally {
       setIsDeleting(false);
     }
@@ -67,7 +71,7 @@ export function AlbumDetailLightboxDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && onDismiss()}>
       <DialogContent
         showCloseButton={false}
         className={cn(
@@ -90,8 +94,8 @@ export function AlbumDetailLightboxDialog({
             variant="ghost"
             size="icon"
             className="h-10 w-10 shrink-0 rounded-full text-foreground"
-            onClick={onClose}
-            aria-label="閉じる"
+            onClick={onDismiss}
+            aria-label="戻る"
           >
             <ArrowLeft className="size-5" />
           </Button>
