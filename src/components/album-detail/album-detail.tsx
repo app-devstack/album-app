@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
 import { albumKeys } from '@/hooks/fetchers/use-albums';
@@ -253,7 +254,9 @@ function AlbumMediaGrid({
   onOpenLightbox,
 }: AlbumMediaGridProps) {
   if (isLoadingPhotos) {
-    return <div>Loading photos...</div>;
+    return (
+      <Loading variant="section" message="写真を読み込み中..." className="py-16" />
+    );
   }
 
   if (photos.length === 0 && uploadingItems.length === 0) {

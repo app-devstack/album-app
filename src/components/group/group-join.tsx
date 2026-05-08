@@ -3,6 +3,8 @@
 import { AppTitle } from '@/components/layout/app-title';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { GroupJoinFetchError } from '@/components/group/group-join-fetch-error';
+import { Loading } from '@/components/ui/loading';
 import { useJoinGroup, useJoinInfo } from '@/hooks/fetchers/use-join';
 import { formatJapaneseDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
@@ -24,24 +26,13 @@ type JoinState = 'idle' | 'loading' | 'joined';
 
 export function GroupJoin({ token }: GroupJoinProps) {
   const router = useRouter();
-  const { data: group } = useJoinInfo(token);
+  const { data: group, isPending, isError } = useJoinInfo(token);
   const { mutateAsync: joinGroup } = useJoinGroup();
   const [joinState, setJoinState] = useState<JoinState>('idle');
 
-  const LOADING_GROUP = {
-    name: '読み込み中...',
-    coverUrl: '/img/album-app-join-cover-img.jpg',
-    inviter: { name: '…', image: null as string | null },
-    photoCount: 0,
-    memberCount: 0,
-    createdAt: new Date().toISOString(),
-  };
-
-  const displayGroup = group ?? LOADING_GROUP;
-
   const createdAtDisplay =
-    displayGroup.createdAt.trim().length > 0
-      ? formatJapaneseDate(displayGroup.createdAt)
+    group && group.createdAt.trim().length > 0
+      ? formatJapaneseDate(group.createdAt)
       : '—';
 
   const handleJoin = async () => {
@@ -60,6 +51,30 @@ export function GroupJoin({ token }: GroupJoinProps) {
     router.push('/');
   };
 
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden bg-login-bg">
+        <PetalDecoration />
+        <div className="relative z-10 w-full max-w-sm">
+          <AppTitle />
+          <Loading
+            variant="section"
+            message="招待情報を読み込み中..."
+            className="rounded-2xl border border-login-border bg-login-card py-20"
+            foregroundClassName="text-login-muted"
+          />
+        </div>
+        <footer className="absolute bottom-6 text-center text-[11px] text-login-muted font-sans tracking-wider select-none z-10">
+          &copy; 2026 思い出帳
+        </footer>
+      </div>
+    );
+  }
+
+  if (isError || !group) {
+    return <GroupJoinFetchError />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden bg-login-bg">
       <PetalDecoration />
@@ -73,8 +88,8 @@ export function GroupJoin({ token }: GroupJoinProps) {
           {/* カバー画像 */}
           <div className="relative h-44 overflow-hidden">
             <img
-              src={displayGroup.coverUrl || '/img/album-app-join-cover-img.jpg'}
-              alt={`${displayGroup.name}のカバー`}
+              src={group.coverUrl || '/img/album-app-join-cover-img.jpg'}
+              alt={`${group.name}のカバー`}
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
             />
@@ -84,7 +99,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
                 グループへの招待
               </p>
               <h2 className="text-xl font-semibold text-white leading-tight text-balance drop-shadow-sm font-sans">
-                {displayGroup.name}
+                {group.name}
               </h2>
             </div>
           </div>
@@ -96,7 +111,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
               <div className="flex items-center gap-4">
                 <p className="text-sm text-login-fg font-sans text-left leading-relaxed text-balance">
                   <span className="font-semibold">
-                    {displayGroup.inviter.name}
+                    {group.inviter.name}
                   </span>
                   さんが
                   <br />
@@ -105,11 +120,11 @@ export function GroupJoin({ token }: GroupJoinProps) {
 
                 <Avatar className=" shrink-0 border ring-login-border">
                   <AvatarImage
-                    src={displayGroup.inviter.image ?? undefined}
+                    src={group.inviter.image ?? undefined}
                     alt=""
                   />
                   <AvatarFallback className="text-xs font-medium bg-login-bg text-login-accent border border-login-border">
-                    {displayGroup.inviter.name.slice(0, 1)}
+                    {group.inviter.name.slice(0, 1)}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -124,7 +139,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
                   <ImageIcon size={15} className="text-login-accent" />
                 </div>
                 <span className="text-sm font-semibold text-login-fg tabular-nums font-sans">
-                  {displayGroup.photoCount}
+                  {group.photoCount}
                 </span>
                 <span className="text-[11px] text-login-muted font-sans">
                   写真
@@ -136,7 +151,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
                   <Users size={15} className="text-login-accent" />
                 </div>
                 <span className="text-sm font-semibold text-login-fg tabular-nums font-sans">
-                  {displayGroup.memberCount}
+                  {group.memberCount}
                 </span>
                 <span className="text-[11px] text-login-muted font-sans">
                   メンバー
@@ -160,7 +175,7 @@ export function GroupJoin({ token }: GroupJoinProps) {
             <div className="flex flex-col items-center gap-2">
               <div className="flex -space-x-2">
                 {Array.from({
-                  length: Math.min(displayGroup.memberCount, 4),
+                  length: Math.min(group.memberCount, 4),
                 }).map((_, i) => (
                   <Avatar key={i} className="h-7 w-7 ring-2 ring-login-card">
                     <AvatarImage src="" alt="メンバー" />
@@ -169,14 +184,14 @@ export function GroupJoin({ token }: GroupJoinProps) {
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {displayGroup.memberCount > 4 && (
+                {group.memberCount > 4 && (
                   <div className="h-7 w-7 rounded-full ring-2 ring-login-card bg-login-bg border border-login-border flex items-center justify-center text-[9px] font-semibold text-login-muted">
-                    +{displayGroup.memberCount - 4}
+                    +{group.memberCount - 4}
                   </div>
                 )}
               </div>
               <p className="text-[11px] text-login-muted font-sans">
-                {displayGroup.memberCount}人がすでに参加中
+                {group.memberCount}人がすでに参加中
               </p>
             </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { AlbumDetail } from '@/components/album-detail/album-detail';
+import { Loading } from '@/components/ui/loading';
 import { useGroupContext } from '@/contexts/GroupContext';
 import { type Album } from '@/db/schema';
 import {
@@ -38,7 +39,7 @@ export default function AlbumDetailPage({ albumId }: AlbumDetailPageProps) {
     router.push('/albums');
   };
 
-  if (isPending) return <div>Loading album...</div>;
+  if (isPending) return <Loading message="アルバムを読み込み中..." />;
   if (isError) {
     return (
       <div className="p-4 text-center text-destructive">
