@@ -1,10 +1,36 @@
 import db from '@/db';
-import { albums, photos } from '@/db/schema';
+import { albums, groupMembers, photos } from '@/db/schema';
 import {
   DEFAULT_ALBUM_SORT_ORDER,
   type AlbumSortOrder,
 } from '@/lib/album-sort-order';
-import { asc, desc, eq, isNotNull, or } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, or } from 'drizzle-orm';
+
+/** `canUserAccessAlbum` 判定に使うアルバム行の最小フィールド。 */
+export type AlbumAccessFields = {
+  groupId: string | null;
+  userId: string | null;
+};
+
+/**
+ * ユーザーがアルバムにアクセスできるか（グループアルバムはメンバーのみ、それ以外は作成者のみ）。
+ */
+export async function canUserAccessAlbum(
+  userId: string,
+  album: AlbumAccessFields
+): Promise<boolean> {
+  if (album.groupId) {
+    const membership = await db.query.groupMembers.findFirst({
+      where: and(
+        eq(groupMembers.groupId, album.groupId),
+        eq(groupMembers.userId, userId)
+      ),
+    });
+    return !!membership;
+  }
+  if (album.userId == null) return false;
+  return album.userId === userId;
+}
 
 /**
  * 指定グループに属するアルバムを取得する（作成日でソート）

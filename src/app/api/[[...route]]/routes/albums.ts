@@ -6,10 +6,15 @@ import {
   type AlbumSortOrder,
 } from '@/lib/album-sort-order';
 import { createApp } from '@/lib/api';
+import { requireSessionUser404 } from '@/lib/middleware/require-session-404';
 import type { OptimizedImageMode } from '@/lib/photo/fetch-optimized-image';
 import { fetchOptimizedImageResponse } from '@/lib/photo/fetch-optimized-image';
-import { getAlbumById, getAllAlbums } from '@/lib/service/albums';
-import { getSession } from '@/lib/service/auth';
+import {
+  canUserAccessAlbum,
+  getAlbumById,
+  getAllAlbums,
+} from '@/lib/service/albums';
+import { getSessionUser } from '@/lib/service/auth';
 import { zValidator } from '@hono/zod-validator';
 import { and, eq, or } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
@@ -42,18 +47,18 @@ const albumListSortQuerySchema = z.enum(ALBUM_SORT_ORDER_VALUES).optional();
 const router = createApp();
 
 export const albumsRouter = router
+  .use(requireSessionUser404)
   .get('/', async (c) => {
-    const session = await getSession(c.req.raw.headers);
-    if (!session) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Not found' }, 404);
 
     const groupId = c.req.query('groupId');
     if (!groupId) return c.json({ error: 'groupId is required' }, 400);
 
-    // グループメンバーかどうかを確認
     const membership = await db.query.groupMembers.findFirst({
       where: and(
         eq(groupMembers.groupId, groupId),
-        eq(groupMembers.userId, session.user.id)
+        eq(groupMembers.userId, user.id)
       ),
     });
     if (!membership) return c.json({ error: 'Forbidden' }, 403);
@@ -68,24 +73,15 @@ export const albumsRouter = router
 
     const albumsWithLatest = await getAllAlbums(groupId, sort);
     return c.json(
-      albumsWithLatest.map(({ photos, ...alb }) => ({
+      albumsWithLatest.map(({ photos: ph, ...alb }) => ({
         ...alb,
-        latestPhoto: photos[0] ?? null,
+        latestPhoto: ph[0] ?? null,
       }))
     );
   })
-  .get('/:id', async (c) => {
-    const id = c.req.param('id');
-    const result = await getAlbumById(id);
-    if (!result) {
-      return c.json({ message: 'Album not found' }, 404);
-    }
-    const { photos: ph, ...alb } = result;
-    return c.json({ ...alb, latestPhoto: ph[0] ?? null });
-  })
   .get('/:id/cover-optimized', async (c) => {
-    const session = await getSession(c.req.raw.headers);
-    if (!session) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Not found' }, 404);
 
     const id = c.req.param('id');
     const modeParam = c.req.query('mode') ?? 'thumb';
@@ -99,16 +95,7 @@ export const albumsRouter = router
       return c.json({ message: 'Album not found' }, 404);
     }
 
-    const groupId = album.groupId;
-    if (groupId) {
-      const membership = await db.query.groupMembers.findFirst({
-        where: and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, session.user.id)
-        ),
-      });
-      if (!membership) return c.json({ error: 'Forbidden' }, 403);
-    } else if (album.userId !== session.user.id) {
+    if (!(await canUserAccessAlbum(user.id, album))) {
       return c.json({ error: 'Forbidden' }, 403);
     }
 
@@ -127,16 +114,30 @@ export const albumsRouter = router
     const accept = c.req.header('Accept') ?? '';
     return fetchOptimizedImageResponse(sourceUrl, mode, accept);
   })
+  .get('/:id', async (c) => {
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Not found' }, 404);
+
+    const id = c.req.param('id');
+    const result = await getAlbumById(id);
+    if (!result) {
+      return c.json({ message: 'Album not found' }, 404);
+    }
+    if (!(await canUserAccessAlbum(user.id, result))) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    const { photos: ph, ...alb } = result;
+    return c.json({ ...alb, latestPhoto: ph[0] ?? null });
+  })
   .post('/', zValidator('json', createAlbumSchema), async (c) => {
-    const session = await getSession(c.req.raw.headers);
-    if (!session) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Not found' }, 404);
     const body = c.req.valid('json');
 
-    // グループメンバーかどうかを確認
     const membership = await db.query.groupMembers.findFirst({
       where: and(
         eq(groupMembers.groupId, body.groupId),
-        eq(groupMembers.userId, session.user.id)
+        eq(groupMembers.userId, user.id)
       ),
     });
     if (!membership) return c.json({ error: 'Forbidden' }, 403);
@@ -145,7 +146,7 @@ export const albumsRouter = router
       ...body,
       id: uuidv7(),
       coverUrl: '',
-      userId: session.user.id,
+      userId: user.id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } satisfies NewAlbum;
@@ -153,8 +154,19 @@ export const albumsRouter = router
     return c.json(newAlbum, 201);
   })
   .put('/:id', zValidator('json', updateAlbumSchema), async (c) => {
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Not found' }, 404);
+
     const id = c.req.param('id');
     const body = c.req.valid('json');
+
+    const existing = await getAlbumById(id);
+    if (!existing) {
+      return c.json({ message: 'Album not found' }, 404);
+    }
+    if (!(await canUserAccessAlbum(user.id, existing))) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
 
     if (body.coverUrl !== undefined && body.coverUrl !== '') {
       const match = await db.query.photos.findFirst({
@@ -196,7 +208,18 @@ export const albumsRouter = router
     return c.json({ ...alb, latestPhoto });
   })
   .delete('/:id', async (c) => {
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Not found' }, 404);
+
     const id = c.req.param('id');
+    const existing = await getAlbumById(id);
+    if (!existing) {
+      return c.json({ message: 'Album not found' }, 404);
+    }
+    if (!(await canUserAccessAlbum(user.id, existing))) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
     await db.delete(albums).where(eq(albums.id, id)).run();
     return c.json({ message: 'Album deleted' }, 200);
   });

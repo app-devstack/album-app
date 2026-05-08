@@ -1,6 +1,7 @@
 import db from '@/db';
 import { memos } from '@/db/schema';
 import { createApp } from '@/lib/api';
+import { requireSessionUser404 } from '@/lib/middleware/require-session-404';
 import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
@@ -21,6 +22,7 @@ const updateMemoSchema = z.object({
 const router = createApp();
 
 export const memosRouter = router
+  .use(requireSessionUser404)
   .get('/album/:albumId', async (c) => {
     const albumId = c.req.param('albumId');
     const albumMemos = await db

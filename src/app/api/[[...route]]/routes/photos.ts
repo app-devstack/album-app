@@ -10,6 +10,7 @@ import {
   r2Manager,
   resolveObjectPublicUrl,
 } from '@/lib/media-storage';
+import { requireSessionUser404 } from '@/lib/middleware/require-session-404';
 import type { OptimizedImageMode } from '@/lib/photo/fetch-optimized-image';
 import { fetchOptimizedImageResponse } from '@/lib/photo/fetch-optimized-image';
 import { zValidator } from '@hono/zod-validator';
@@ -53,6 +54,7 @@ function assertAlbumObjectKey(albumId: string, key: string): boolean {
 const router = createApp();
 
 export const photosRouter = router
+  .use(requireSessionUser404)
   .get('/local-object/*', async (c) => {
     const pathname = new URL(c.req.url).pathname;
     const key = decodeKeyFromLocalObjectPathname(pathname);

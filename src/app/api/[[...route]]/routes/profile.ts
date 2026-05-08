@@ -4,6 +4,7 @@ import {
   enableLocalUploading,
   r2Manager,
 } from '@/lib/media-storage';
+import { requireSessionUser404 } from '@/lib/middleware/require-session-404';
 import { zValidator } from '@hono/zod-validator';
 import { env } from 'cloudflare:workers';
 import { z } from 'zod';
@@ -31,6 +32,7 @@ function assertProfileObjectKey(key: string): boolean {
 const router = createApp();
 
 export const profileRouter = router
+  .use(requireSessionUser404)
   .post('/upload-avatar', zValidator('json', uploadAvatarSchema), async (c) => {
     try {
       const { filename, contentType } = c.req.valid('json');
