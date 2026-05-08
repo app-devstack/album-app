@@ -15,6 +15,7 @@ import {
   Shield,
   UsersIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export function SettingsPage() {
@@ -108,8 +109,14 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <footer className="text-center text-[11px] text-muted-foreground font-sans tracking-wider select-none pt-2">
-          &copy; 2026 思い出帳
+        <footer className="select-none pt-2 text-center font-sans text-[11px] tracking-wider text-muted-foreground">
+          <p>&copy; 2026 思い出帳</p>
+          <Link
+            href="/settings/dev-memo"
+            className="mt-1 block opacity-60 underline-offset-2 hover:opacity-90 hover:underline"
+          >
+            開発用メモ
+          </Link>
         </footer>
       </div>
     </main>
