@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 /** アルバム詳細ライトボックスに渡すプロパティ。 */
 export interface AlbumDetailLightboxDialogProps {
   item: Photo | null; // 表示する写真または動画
-  onClose: () => void; // 閉じる
+  onClose: () => void; // 閉じる（ブラウザ履歴と同期）
   onDelete: () => Promise<void>; // 確認後に実行する削除処理
   accentText: string; // useAccentStore 連動の ACCENT_COLORS.text（例: text-rose-500）
 }
@@ -67,7 +67,7 @@ export function AlbumDetailLightboxDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={Boolean(item)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
         className={cn(
@@ -91,7 +91,7 @@ export function AlbumDetailLightboxDialog({
             size="icon"
             className="h-10 w-10 shrink-0 rounded-full text-foreground"
             onClick={onClose}
-            aria-label="閉じる"
+            aria-label="戻る"
           >
             <ArrowLeft className="size-5" />
           </Button>

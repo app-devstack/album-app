@@ -28,7 +28,7 @@ import {
   MapPin,
   Plus,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
 import { AlbumDetailAddMediaDialog } from './album-detail-add-media-dialog';
 import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
@@ -46,6 +46,14 @@ interface UploadingItem {
 interface AlbumDetailProps {
   album: Album & { latestPhoto?: Photo | null };
   accent: AccentColor;
+  /** クエリ `photo` の値。ライトボックス表示と同期する。 */
+  lightboxPhotoId: string | null;
+  /** グリッド等からライトボックスを開く（履歴に push）。 */
+  onOpenLightbox: (photoId: string) => void;
+  /** ライトボックスを閉じる（push 経路は back、直リンク等は replace）。 */
+  onCloseLightbox: () => void;
+  /** 存在しない photo ID のときクエリだけ除去する。 */
+  onStripInvalidPhotoQuery: () => void;
   onBack: () => void;
   onAlbumUpdate: (updated: Partial<Album> & { id: string }) => Promise<void>;
   onAlbumDelete: (id: string) => Promise<void>;
@@ -54,6 +62,10 @@ interface AlbumDetailProps {
 export function AlbumDetail({
   album,
   accent,
+  lightboxPhotoId,
+  onOpenLightbox,
+  onCloseLightbox,
+  onStripInvalidPhotoQuery,
   onBack,
   onAlbumUpdate,
   onAlbumDelete,
@@ -64,13 +76,28 @@ export function AlbumDetail({
   const { mutateAsync: deletePhotoMutation } = useDeletePhoto();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
   const [editTitle, setEditTitle] = useState(album.title);
   const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
   const [addMediaDialogOpen, setAddMediaDialogOpen] = useState(false);
   /** ファイル確定〜バッチ完了まで。ダイアログクローズや二重取得を抑止する。 */
   const [mediaUploadInProgress, setMediaUploadInProgress] = useState(false);
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
+
+  const lightboxItem = useMemo(() => {
+    if (!lightboxPhotoId) return null;
+    return photos.find((p) => p.id === lightboxPhotoId) ?? null;
+  }, [lightboxPhotoId, photos]);
+
+  useEffect(() => {
+    if (!lightboxPhotoId || isLoadingPhotos) return;
+    if (photos.some((p) => p.id === lightboxPhotoId)) return;
+    onStripInvalidPhotoQuery();
+  }, [
+    isLoadingPhotos,
+    lightboxPhotoId,
+    onStripInvalidPhotoQuery,
+    photos,
+  ]);
 
   const handleDeletePhoto = async (photoId: string) => {
     await deletePhotoMutation(photoId);
@@ -183,7 +210,7 @@ export function AlbumDetail({
           uploadingItems={uploadingItems}
           accentConfig={accentConfig}
           onAddClick={() => setAddMediaDialogOpen(true)}
-          onOpenLightbox={setLightboxItem}
+          onOpenLightbox={(item) => onOpenLightbox(item.id)}
         />
 
         <AlbumDetailMemoSection
@@ -203,7 +230,7 @@ export function AlbumDetail({
         <AlbumDetailLightboxDialog
           item={lightboxItem}
           accentText={accentConfig.text}
-          onClose={() => setLightboxItem(null)}
+          onClose={onCloseLightbox}
           onDelete={async () => {
             if (!lightboxItem) return;
             await handleDeletePhoto(lightboxItem.id);
