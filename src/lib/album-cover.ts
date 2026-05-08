@@ -2,17 +2,16 @@ import type { Album, Photo } from '@/db/schema';
 
 /**
  * アルバムカード・ヘッダ用の画像 src。
- * - カスタム coverUrl あり → サーバーが元 URL を解決して最適化するアルバム API
- * - 未設定で最新写真のみ → 写真単体の optimized（従来どおり）
+ * @description カスタム cover 時は `cover-optimized` の URL が ID 固定のため応答キャッシュと噛み合わない。そのため `updatedAt` をクエリに含めキャッシュバストする。
  */
 export function albumCoverImageSrc(
   album: Album & { latestPhoto?: Photo | null }
 ): string | null {
   const customUrl = album.coverUrl.trim();
 
-  // カスタム URL があればそれを優先
   if (customUrl.length > 0) {
-    return `/api/albums/${album.id}/cover-optimized?mode=thumb`;
+    const v = encodeURIComponent(album.updatedAt);
+    return `/api/albums/${album.id}/cover-optimized?mode=thumb&v=${v}`;
   }
 
   // 最新写真があればそれをアルバムカバーとして使用
