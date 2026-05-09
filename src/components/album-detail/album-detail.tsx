@@ -1,6 +1,12 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Loading } from '@/components/ui/loading';
 import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
@@ -27,12 +33,15 @@ import {
   ImagePlus,
   MapPin,
   Plus,
+  Settings2,
+  Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
 import { AlbumDetailAddMediaDialog } from './album-detail-add-media-dialog';
 import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
 import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
+import { AlbumDetailDeleteDialog } from './album-detail-delete-dialog';
 import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
 import { AlbumDetailUploadingOverlay } from './album-detail-uploading-overlay';
 import { AlbumDetailMemoSection } from './memos/album-detail-memo-section';
@@ -76,6 +85,7 @@ export function AlbumDetail({
   const { mutateAsync: deletePhotoMutation } = useDeletePhoto();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(album.title);
   const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
   const [addMediaDialogOpen, setAddMediaDialogOpen] = useState(false);
@@ -192,7 +202,8 @@ export function AlbumDetail({
         <AlbumHeader
           title={album.title}
           onBack={onBack}
-          onSettingsOpen={() => setSettingsOpen(true)}
+          onEditOpen={() => setSettingsOpen(true)}
+          onDeleteOpen={() => setDeleteOpen(true)}
         />
 
         <AlbumCover
@@ -249,14 +260,16 @@ export function AlbumDetail({
             await onAlbumUpdate({ id: album.id, coverUrl });
           }}
           photoUrlForCover={photoUrlForAlbumCover}
+          accentBg={cn(accentConfig.bg, accentConfig.bgHover)}
+        />
+
+        <AlbumDetailDeleteDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
           onDelete={async () => {
-            if (confirm('このアルバムを削除してもよろしいですか？')) {
-              await onAlbumDelete(album.id);
-              onBack();
-            }
+            await onAlbumDelete(album.id);
+            onBack();
           }}
-          accentBg={accentConfig.bg}
-          accentBgHover={accentConfig.bgHover}
         />
       </AlbumMemoProvider>
     </main>
@@ -408,13 +421,16 @@ function EmptyMediaState({ accentConfig, onAddClick }: EmptyMediaStateProps) {
 
 /** アルバム詳細画面のヘッダーに渡すプロパティ。 */
 interface AlbumHeaderProps {
-  title: string; // アルバムのタイトル
-  onBack: () => void; // 戻るボタンのクリックハンドラー
-  onSettingsOpen: () => void; // 設定ボタンのクリックハンドラー
+  title: string;
+  onBack: () => void;
+  /** 編集（設定）ダイアログを開く。 */
+  onEditOpen: () => void;
+  /** 削除確認ダイアログを開く。 */
+  onDeleteOpen: () => void;
 }
 
 /** アルバム詳細画面の上部に表示するヘッダーコンポーネント。 */
-function AlbumHeader({ title, onBack, onSettingsOpen }: AlbumHeaderProps) {
+function AlbumHeader({ title, onBack, onEditOpen, onDeleteOpen }: AlbumHeaderProps) {
   return (
     <div className="flex items-center gap-3">
       <Button
@@ -434,15 +450,35 @@ function AlbumHeader({ title, onBack, onSettingsOpen }: AlbumHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full"
-          onClick={onSettingsOpen}
-          aria-label="アルバム設定"
-        >
-          <EllipsisVerticalIcon size={14} />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              aria-label="アルバムのオプション"
+            >
+              <EllipsisVerticalIcon size={14} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[10rem]">
+            <DropdownMenuItem
+              className="cursor-pointer gap-2"
+              onSelect={() => onEditOpen()}
+            >
+              <Settings2 className="shrink-0" />
+              アルバムを編集
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              className="cursor-pointer gap-2"
+              onSelect={() => onDeleteOpen()}
+            >
+              <Trash2 className="shrink-0" />
+              アルバムを削除
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
