@@ -11,6 +11,10 @@ import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+const downloadPhotoParamSchema = z.object({
+  photoId: z.string().min(1),
+});
+
 const downloadPhotoQuerySchema = z.object({
   size: z.enum(['full', 'optimized']),
 });
@@ -53,6 +57,7 @@ export const downloadRouter = router
   .use(requireSessionUser404)
   .get(
     '/photo/:photoId',
+    zValidator('param', downloadPhotoParamSchema),
     zValidator('query', downloadPhotoQuerySchema),
     async (c) => {
       const user = await getSessionUser(c);
@@ -60,7 +65,7 @@ export const downloadRouter = router
         return c.json({ error: 'Not found' }, 404);
       }
 
-      const photoId = c.req.param('photoId');
+      const { photoId } = c.req.valid('param');
       const { size } = c.req.valid('query');
 
       const photoRow = await db.query.photos.findFirst({
@@ -103,7 +108,7 @@ export const downloadRouter = router
         }
       }
 
-      const sourceUrl = photoRow.thumbnailUrl || photoRow.url;
+      const sourceUrl = photoRow.url;
       const accept = c.req.header('Accept') ?? '';
       const res = await fetchOptimizedImageResponse(sourceUrl, 'full', accept);
 

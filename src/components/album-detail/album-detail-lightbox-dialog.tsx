@@ -12,6 +12,7 @@ import {
 import { Photo } from '@/db/schema';
 import { useRegenerateThumbnail } from '@/hooks/fetchers/use-photos';
 import { toast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -94,10 +95,10 @@ export function AlbumDetailLightboxDialog({
     const fallbackName = `${item.id}-${size}`;
     setIsDownloading(true);
     try {
-      const res = await fetch(
-        `/api/download/photo/${encodeURIComponent(item.id)}?size=${size}`,
-        { credentials: 'include' }
-      );
+      const res = await api.download.photo[':photoId'].$get({
+        param: { photoId: item.id },
+        query: { size },
+      });
 
       if (!res.ok) {
         const description =
@@ -129,7 +130,7 @@ export function AlbumDetailLightboxDialog({
         anchor.click();
         anchor.remove();
       } finally {
-        URL.revokeObjectURL(blobUrl);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
       }
     } catch {
       toast({
