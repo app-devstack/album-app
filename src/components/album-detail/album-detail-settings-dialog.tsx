@@ -10,12 +10,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import type { Photo } from '@/db/schema';
 import { cn } from '@/lib/utils';
-import { ImageIcon, Trash2 } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 
+/** アルバムのタイトル・カバー画像を編集するダイアログ。 */
 interface AlbumDetailSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,11 +26,13 @@ interface AlbumDetailSettingsDialogProps {
   albumCoverUrl: string;
   onSetCoverUrl: (coverUrl: string) => Promise<void>;
   photoUrlForCover: (photo: Photo) => string;
-  onDelete: () => Promise<void>;
+  /** 保存ボタンに適用するアクセント用のクラス（通常は bg と hover を結合）。 */
   accentBg: string;
-  accentBgHover: string;
 }
 
+/**
+ * アルバム詳細画面でタイトルとカバー画像を変更する設定ダイアログ。
+ */
 export function AlbumDetailSettingsDialog({
   open,
   onOpenChange,
@@ -41,9 +43,7 @@ export function AlbumDetailSettingsDialog({
   albumCoverUrl,
   onSetCoverUrl,
   photoUrlForCover,
-  onDelete,
   accentBg,
-  accentBgHover,
 }: AlbumDetailSettingsDialogProps) {
   const [coverPending, setCoverPending] = useState(false);
   const hasCustomCover = Boolean(albumCoverUrl?.trim());
@@ -152,29 +152,10 @@ export function AlbumDetailSettingsDialog({
             </Button>
             <Button
               onClick={onSave}
-              className={cn('text-white', accentBg, accentBgHover)}
+              className={cn('text-white', accentBg)}
             >
               保存
             </Button>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-base font-semibold text-destructive">
-                アルバムを削除する
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                この操作は取り消せません。慎重に行ってください。
-              </p>
-            </div>
-            <div className="flex justify-end">
-              <Button variant="destructive" onClick={onDelete}>
-                <Trash2 size={16} className="mr-1.5" />
-                アルバムを削除
-              </Button>
-            </div>
           </div>
         </div>
       </DialogContent>
