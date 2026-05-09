@@ -3,16 +3,38 @@
 import { VideoPlayer } from '@/components/common/video-player';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Photo } from '@/db/schema';
 import { useRegenerateThumbnail } from '@/hooks/fetchers/use-photos';
+import { toast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
+  Download,
   RefreshCw,
   Loader2Icon as SpinnerIcon,
   Trash2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+/** Content-Disposition の filename を解釈し、無ければ fallback を返す。 */
+function attachmentFilenameFromHeader(
+  contentDisposition: string | null,
+  fallback: string
+): string {
+  if (!contentDisposition) return fallback;
+  const quoted = /filename="((?:[^"\\]|\\.)*)"/.exec(contentDisposition);
+  if (quoted?.[1]) {
+    return quoted[1].replace(/\\(.)/g, '$1');
+  }
+  return fallback;
+}
 
 /** アルバム詳細ライトボックスに渡すプロパティ。 */
 export interface AlbumDetailLightboxDialogProps {
@@ -22,7 +44,7 @@ export interface AlbumDetailLightboxDialogProps {
   accentText: string; // useAccentStore 連動の ACCENT_COLORS.text（例: text-rose-500）
 }
 
-/** タップで開くフルスクリーンに近いメディアビューア。上部に戻る・削除を表示する。 */
+/** タップで開くフルスクリーンに近いメディアビューア。上部に戻る・削除・画像のダウンロードを表示する。 */
 export function AlbumDetailLightboxDialog({
   item,
   onClose,
@@ -31,6 +53,7 @@ export function AlbumDetailLightboxDialog({
 }: AlbumDetailLightboxDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { mutateAsync: regenerateThumbnail, isPending: isRegenerating } =
     useRegenerateThumbnail();
 
@@ -63,6 +86,60 @@ export function AlbumDetailLightboxDialog({
       });
     } catch (error) {
       console.error('Thumbnail regeneration failed:', error);
+    }
+  };
+
+  const handleDownloadPhoto = async (size: 'full' | 'optimized') => {
+    if (!item || item.mediaType !== 'image') return;
+
+    const fallbackName = `${item.id}-${size}`;
+    setIsDownloading(true);
+    try {
+      const res = await api.download.photo[':photoId'].$get({
+        param: { photoId: item.id },
+        query: { size },
+      });
+
+      if (!res.ok) {
+        const description =
+          res.status === 403
+            ? 'ダウンロードする権限がありません'
+            : res.status === 404
+              ? '写真が見つかりません'
+              : `ダウンロードに失敗しました (${res.status})`;
+        toast({
+          title: 'ダウンロードできませんでした',
+          description,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      try {
+        const anchor = document.createElement('a');
+        anchor.href = blobUrl;
+        anchor.download = attachmentFilenameFromHeader(
+          res.headers.get('Content-Disposition'),
+          fallbackName
+        );
+        anchor.rel = 'noopener';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+      }
+    } catch {
+      toast({
+        title: 'ダウンロードできませんでした',
+        description: 'ネットワークエラーが発生しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -124,6 +201,39 @@ export function AlbumDetailLightboxDialog({
             >
               <Trash2 className="size-5" />
             </Button>
+
+            {item.mediaType === 'image' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 shrink-0 rounded-full text-foreground"
+                    disabled={isDownloading}
+                    aria-label="写真をダウンロード"
+                  >
+                    {isDownloading ? (
+                      <SpinnerIcon className="size-5 animate-spin" />
+                    ) : (
+                      <Download className="size-5" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[10rem]">
+                  <DropdownMenuItem
+                    onSelect={() => void handleDownloadPhoto('full')}
+                  >
+                    フルサイズ
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => void handleDownloadPhoto('optimized')}
+                  >
+                    最適化済み
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 
