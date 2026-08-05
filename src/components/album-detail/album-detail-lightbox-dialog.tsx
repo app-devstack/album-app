@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
   Download,
+  MoreHorizontal,
   RefreshCw,
   Loader2Icon as SpinnerIcon,
   Trash2,
@@ -44,7 +45,7 @@ export interface AlbumDetailLightboxDialogProps {
   accentText: string; // useAccentStore 連動の ACCENT_COLORS.text（例: text-rose-500）
 }
 
-/** タップで開くフルスクリーンに近いメディアビューア。上部に戻る・削除・画像のダウンロードを表示する。 */
+/** タップで開くフルスクリーンに近いメディアビューア。上部に戻る・ダウンロード・その他メニューを表示する。 */
 export function AlbumDetailLightboxDialog({
   item,
   onClose,
@@ -174,34 +175,6 @@ export function AlbumDetailLightboxDialog({
           </Button>
 
           <div className="flex items-center gap-1">
-            {item.mediaType === 'video' && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 shrink-0 rounded-full text-foreground"
-                onClick={handleRegenerateThumbnail}
-                disabled={isRegenerating}
-                aria-label="サムネイルを再生成"
-              >
-                <RefreshCw
-                  className={cn('size-5', isRegenerating && 'animate-spin')}
-                />
-              </Button>
-            )}
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0 rounded-full text-foreground"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              aria-label="このメディアを削除"
-            >
-              <Trash2 className="size-5" />
-            </Button>
-
             {item.mediaType === 'image' && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -220,20 +193,59 @@ export function AlbumDetailLightboxDialog({
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-[10rem]">
+                <DropdownMenuContent align="end" className="min-w-[12rem]">
                   <DropdownMenuItem
                     onSelect={() => void handleDownloadPhoto('full')}
+                    className="cursor-pointer py-3 text-base"
                   >
                     フルサイズ
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => void handleDownloadPhoto('optimized')}
+                    className="cursor-pointer py-3 text-base"
                   >
                     最適化済み
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-full text-foreground"
+                  aria-label="その他の操作"
+                >
+                  <MoreHorizontal className="size-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[12rem]">
+                {item.mediaType === 'video' && (
+                  <DropdownMenuItem
+                    onSelect={() => void handleRegenerateThumbnail()}
+                    disabled={isRegenerating}
+                    className="cursor-pointer py-3 text-base"
+                  >
+                    <RefreshCw
+                      className={cn('size-4', isRegenerating && 'animate-spin')}
+                    />
+                    サムネイルを再生成
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => void handleDelete()}
+                  disabled={isDeleting}
+                  className="cursor-pointer py-3 text-base"
+                >
+                  <Trash2 className="size-4" />
+                  削除する
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
