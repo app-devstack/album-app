@@ -12,4 +12,18 @@
   "images": {
     "binding": "IMAGES",
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "album-app-db",
+      "database_id": "local-album-app-db",
+      "migrations_dir": "./drizzle",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "album-app-media",
+    },
+  ],
 }
