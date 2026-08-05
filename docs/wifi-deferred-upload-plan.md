@@ -2,8 +2,9 @@
 
 ---
 date: 2026-08-05
-tags: [upload, wifi, offline, r2, planning]
+tags: [upload, wifi, offline, r2, planning, competitive-research]
 project: album-app
+related: [[]]
 ---
 
 ## 背景
@@ -15,229 +16,225 @@ project: album-app
 
 | 疑問 | 答え |
 |------|------|
-| Cloudflare 側で「Wi-Fi 復活まで待って非同期アップロード」できるか？ | **ほぼ不要・できない**（端末の回線種別はサーバーが知らない／ファイルがまだ端末にある） |
-| 外部サービスは必要か？ | **不要**（既存の Presigned URL → R2 PUT → metadata POST のまま） |
-| ハイブリッドアプリ（Capacitor 等）は必要か？ | **MVP では不要**。Web だけで十分着手できる |
-| まず何をするか？ | **クライアント側のアップロードキュー + UI 選択** |
+| Cloudflare 側で「Wi-Fi 復活まで待って非同期アップロード」できるか？ | **ほぼ不要・できない** |
+| 外部サービスは必要か？ | **不要** |
+| ネイティブラップは必要か？ | **MVP では不要**（ただし完全なバックグラウンドは Web では限界あり） |
+| 真似すべきモデルは？ | **Google Photos / Dropbox の「設定で回線制御 + 待機ステータス + 今すぐ送信」** |
+| 本アプリの操作モデルは？ | カメラロール自動バックアップではなく **手動でアルバムに追加**（LINE アルバムに近い） |
 
-現状のアップロードはすでにクライアント起点である。
+決定済み要件:
+
+1. **ダイアログ選択 + 設定トグルの両方**を実装する  
+2. **デフォルトは「今すぐ」**。設定で Wi-Fi 制御の出し方を変える  
+3. バックグラウンド期待値は大手調査結果に合わせて設計する（下記）
+
+---
+
+## 大手サービス調査
+
+### 重要な区別: 2つのプロダクト型
+
+| 型 | 代表 | ユーザー操作 | 通信制御の置き場 |
+|----|------|--------------|------------------|
+| **A. 自動バックアップ** | Google Photos Backup / iCloud Photos / Dropbox Camera Upload / Amazon Photos Auto-Save | 一度 ON にしたら撮影分が勝手に上がる | **設定画面が主**（Wi-Fi only / モバイルデータ許可） |
+| **B. 手動アルバム追加** | LINE アルバム / Google Photos「共有アルバムに追加」 / Instagram 投稿 | その場で写真を選んで追加・送信 | 基本は**今すぐ送信**。回線制御は弱い or ない |
+
+**本アプリ（思い出帳）は型 B**（アルバム詳細でファイル選択 → 追加）。  
+一方、ユーザーの不満（通信制限・出先）は型 A の設定で解決されている問題なので、**型 B の操作に型 A の回線制御 UX を載せる**のが適切。
+
+### Google Photos（最も参考になる）
+
+出典: [Back up photos & videos (Google Help)](https://support.google.com/photos/answer/6193313)
+
+| 項目 | 挙動 |
+|------|------|
+| 基本モデル | **Backup ON で自動アップロード**（手動選択ではない） |
+| デフォルト回線 | 実質 **Wi-Fi 優先**。モバイルデータは設定で許可・日次上限 |
+| 設定 | `Backup → Mobile data usage`  
+  - 日次データ上限  
+  - **動画はモバイルデータでバックアップしない** トグル  
+  - ローミング時バックアップ |
+| 待機時 UI | ステータス「**Waiting for Wi-Fi**」「Backing up… N left」 |
+| 手動オーバーライド | ステータスから **「Turn on mobile data」** / 個別「**Back up now**」 |
+| バックグラウンド | ネイティブアプリとしてバックグラウンド継続（電池最適化の影響あり） |
+
+ポイント: **毎回ダイアログで聞かない**。設定がデフォルト動作を決め、待っているときはステータスと「今すぐ」で上書き。
+
+### Dropbox Camera Uploads
+
+出典: [Camera uploads overview](https://help.dropbox.com/create-upload/camera-uploads-overview)
+
+| 項目 | 挙動 |
+|------|------|
+| 基本モデル | カメラロール自動バックアップ（設定で ON） |
+| 回線設定 | iOS: **Use cell data to back up** / Android: **Use data when offline** |
+| デフォルト | 環境によりモバイルデータ利用可がデフォルトのこともある → **旅行時は OFF 推奨**とされることが多い |
+| バックグラウンド | OS の Background App Refresh / 電池制限に依存。大量時は「overnight uploads」案内あり |
+
+### Amazon Photos
+
+| 項目 | 挙動 |
+|------|------|
+| 基本モデル | Auto-Save |
+| 回線設定 | **Settings → Auto-Save → Wi-Fi only** |
+
+### iCloud Photos / Shared Albums
+
+| 項目 | 挙動 |
+|------|------|
+| iCloud Photos | 連続同期。既定ではセルラーも可。`設定 → 写真 → モバイルデータ` で制限。大きいものは Wi-Fi 待ちになり「Waiting for Wi-Fi」表示されることあり |
+| iCloud Backup（端末全体） | 原則 Wi-Fi（＋充電・ロック） |
+| Shared Album への追加 | 手動追加後は同期。細かい「この追加だけ Wi-Fi」UI より、写真アプリ全体のモバイルデータ設定に寄る |
+
+### LINE アルバム（型 B・本アプリに操作が近い）
+
+| 項目 | 挙動 |
+|------|------|
+| 基本モデル | **ユーザーが写真を選んでアルバムに追加** → その場でアップロード開始 |
+| 回線制御 | Google Photos 級の「Wi-Fi only」トグルは一般に前面に出ない |
+| 実務上の案内 | 大量・動画は **Wi-Fi 推奨**（ヘルプ・トラブルシュート記事で頻出） |
+| バックグラウンド | ネイティブアプリ内で送信継続。失敗時は再試行・通信切替を案内 |
+
+→ LINE だけでは「通信制限への不安」は解決しにくい。だからこそ本アプリは **LINE 操作 + Google Photos 設定** のハイブリッドがよい。
+
+### 調査から読む「普通の挙動」
+
+1. **自動バックアップ系**は「設定で回線を決め、裏でキュー、待機中は Waiting for Wi-Fi、必要なら今すぐ」  
+2. **手動追加系**は「選んだらすぐ送る」が普通。回線制御は弱い  
+3. **毎回「今すぐ / Wi-Fi？」を聞く**のは大手ではあまり主流ではない（設定が主、例外時だけ確認）  
+4. **完全なバックグラウンド送信**はネイティブ前提。Web / PWA（特に iOS）ではタブ閉鎖後の自動送信は期待できない  
+
+---
+
+## 本アプリ向け推奨 UX（大手寄せ）
+
+ユーザー決定を反映しつつ、Google Photos のメンタルモデルに寄せる。
+
+### 設定（主制御）
+
+設定画面にセクション「アップロード」を追加。
+
+| 設定項目 | 型 | デフォルト | 説明 |
+|----------|-----|-----------|------|
+| **モバイルデータでアップロード** | トグル | **ON**（＝「今すぐ」） | OFF にすると、判定できる範囲で Wi-Fi / 有線以外ではキューに入れて待つ |
+| **動画はモバイルデータで送らない**（任意・Phase 1.5） | トグル | ON（データ節約） | Google Photos の「Back up videos over data」OFF 相当 |
+| **追加時に毎回確認する** | トグル | **OFF** | ON のときだけ、メディア追加ダイアログで「今すぐ / Wi-Fi で後で」を表示 |
+
+これで:
+
+- デフォルトは一般的な型 B と同じく **今すぐ送る**  
+- 通信を気にする人は設定で「モバイルデータ OFF」にできる（型 A）  
+- 「毎回聞きたい」人だけダイアログを有効化できる  
+
+### ダイアログ（設定依存）
+
+`追加時に毎回確認する = ON` のとき、または  
+`モバイルデータでアップロード = OFF` かつ **回線が Wi-Fi でない / 不明** のとき:
 
 ```
-[ブラウザ] upload-url 取得 → R2 へ PUT → photos metadata POST
+この写真の送信方法
+○ 今すぐアップロード（モバイルデータ使用の可能性あり）
+○ Wi-Fi 接続時にアップロード
+[ この選択を次回から覚えない / 設定で変更できます ]
 ```
 
-実装箇所の中心は `src/hooks/fetchers/use-photos.ts` の `createPhoto` と、  
-`src/components/album-detail/album-detail.tsx` の `handleAddMediaBatch`。
+`追加時に毎回確認 = OFF` かつ `モバイルデータ = ON` のときは **従来どおり即アップロード**（ダイアログに回線選択肢を出さない）。
 
-Cloudflare Queues / Workflows は「サーバーに届いた後の後処理」向けであり、  
-**「端末に残っている写真を Wi-Fi まで待つ」問題は解決しない。**
+### 待機中 UI（Google Photos の Waiting for Wi-Fi 相当）
 
----
+- アルバム詳細に「**Wi-Fi 待ち: N 件**」バナー / ステータス
+- 操作:
+  - **今すぐ送信**（モバイルデータでも送るオーバーライド）
+  - **キャンセル**（キュー削除）
+- 可能ならローカルプレビュー（サムネ）を出す
 
-## 案の比較（パッとできる順）
+### バックグラウンド期待値（正直な仕様）
 
-### 案 A（推奨・最短）: ダイアログで「今すぐ / Wi-Fi で後で」
+| 環境 | できること | できないこと |
+|------|------------|--------------|
+| タブ / PWA が前面 or 生存中 | `online` / `visibilitychange` / connection 変化でキュー消化 | — |
+| Chromium（Android）+ SW | Background Sync で改善の余地（Phase 3） | 電池制限で止まることはある |
+| **iOS Safari / 全 WebKit** | **アプリを再度開いたときに再開** | タブ完全終了後の真のバックグラウンド送信（Background Sync 非対応） |
+| Google Photos ネイティブ | OS 連携で裏送信 | Web では同等不可 |
 
-**やること**
+**ユーザー向けコピー案:**
 
-1. メディア追加ダイアログ（またはファイル選択直後）で選択:
-   - 「今すぐアップロード」
-   - 「Wi-Fi 接続時にアップロード」
-2. 後者は `IndexedDB`（または OPFS）に Blob + メタ（albumId, fileName, mediaType, addedAt）を保存
-3. `online` / `visibilitychange` /（可能なら）`navigator.connection` を見てキューを消化
-4. 消化時は **既存の `createPhoto` と同じ API フロー**（Presigned URL は有効期限があるので、実行時に再取得）
+> Wi-Fi 待ちの写真は、このアプリを開いているあいだ、または次回開いたときに自動で送信されます。
 
-**メリット**
-
-- サーバー変更ほぼゼロ
-- 外部サービス不要
-- ユーザーが明示的に選べる（抵抗感の直接解決）
-- 既存ダイアログに一文ある「Wi-Fi 環境での追加をおすすめ」を行動に変えられる
-
-**注意点**
-
-- iOS Safari は `navigator.connection`（Network Information API）が弱い／未対応が多い  
-  → 「Wi-Fi 判定」は完璧にできない場合がある  
-  → **ユーザー選択を正**にし、判定は補助にする
-- タブを閉じても残すなら IndexedDB 必須（メモリ上の `File` だけでは消える）
-- 端末のストレージ上限・古いキューの掃除（TTL）が必要
-
-**工数目安**: 小〜中（UI + キューストア + 再開フック）
+「Google フォトと同じく常に裏で送られる」とは約束しない。代わりに **再開確実性（IndexedDB）とステータスの透明性**で大手ネイティブに近づける。
 
 ---
 
-### 案 B: 設定のトグル「モバイル回線ではアップロードしない」
+## 技術方針
 
-**やること**
+### サーバー（Cloudflare）
 
-- 設定画面にトグルを追加（localStorage / 将来はユーザー設定を D1 に）
-- ON のとき、非 Wi-Fi（または判定不能時は確認ダイアログ）なら自動でキューへ
+変更ほぼ不要。既存フローのまま:
 
-**メリット**
+```
+upload-url → R2 PUT → photos POST
+```
 
-- 毎回聞かなくてよい
-- 案 A と併用しやすい（デフォルト動作を設定、都度オーバーライドはダイアログ）
+Presigned URL はキュー消化時に再取得（期限 1h）。
 
-**注意点**
+### クライアント
 
-- 案 A と同じく回線判定のブラウザ差がある
-- 設定 UI 追加が必要（現状設定はテーマ・アカウント中心）
-
-**工数目安**: 案 A に +小
-
----
-
-### 案 C: Service Worker + Background Sync
-
-**やること**
-
-- SW に Background Sync / Periodic Background Sync でオンライン復帰時に送信
-
-**メリット**
-
-- アプリを開いていなくても送れそう、に見える
-
-**デメリット（このプロジェクトでは後回し推奨）**
-
-- iOS Safari のサポートが弱い
-- PWA / SW の導入・デバッグコストが大きい
-- Vinext / Workers 配信との相性確認が別途必要
-- 「パッとできる」から外れる
-
-**工数目安**: 中〜大
-
----
-
-### 案 D: Capacitor / ネイティブラップ
-
-**やること**
-
-- ネイティブのネットワーク種別 API で正確な Wi-Fi 判定、バックグラウンド転送
-
-**メリット**
-
-- 回線判定と OS 連携が強い
-
-**デメリット**
-
-- ストア配布・証明書・更新フローが新たに発生
-- 学習コストが高く、今回の「まずパッと」には不向き
-- Cloudflare 以外というより **別プロダクト化** に近い
-
-**工数目安**: 大（今回は見送り推奨）
-
----
-
-### 案 E: Cloudflare Queues / Workflows でサーバー遅延
-
-**やること（想定されがちな誤解）**
-
-- サーバーに一度上げて、あとで R2 へ移す / 処理する
-
-**なぜ今回の本命にならないか**
-
-1. ユーザーが避けたいのは **そもそもモバイル回線でバイナリを送ること**
-2. サーバーに載せる時点で通信コストは発生している
-3. Wi-Fi 判定はクライアントにしかない
-
-Queues が生きるのは、例えば「アップロード後のサムネ生成・通知」など **到達後の非同期処理**。  
-今回の「Wi-Fi まで待つ」とは別問題。
-
----
-
-## 推奨ロードマップ
-
-### Phase 1（すぐ価値が出る）
-
-1. アップロード時ダイアログに **「今すぐ」/「Wi-Fi で後で」** を追加（案 A）
-2. IndexedDB キュー + オンライン復帰時の再実行
-3. アルバム詳細に「待機中 N 件」と手動「今すぐ送信」ボタン
-4. Presigned URL はキュー消化時に都度取得（既存 1h 期限を前提に設計）
-
-### Phase 2
-
-1. 設定トグル「可能な限り Wi-Fi のみ」（案 B）
-2. 動画だけデフォルト Wi-Fi（画像は今すぐ、など）— 動画は最大 500MB 想定で効果大
-3. 失敗リトライ（指数バックオフ）と期限切れキューの掃除
-
-### Phase 3（必要なら）
-
-1. PWA / Background Sync（案 C）を Android 中心に検討
-2. どうしても iOS のバックグラウンド必須ならネイティブ検討（案 D）
-
----
-
-## 技術メモ（このリポジトリ向け）
+| 要素 | 内容 |
+|------|------|
+| 永続キュー | IndexedDB（Blob + albumId, mediaType, addedAt, fileName, createdAt） |
+| 設定保存 | まず `localStorage`（端末単位）。将来アカウント同期するなら D1 |
+| 回線判定 | `navigator.connection`（Chromium）。iOS は弱い → **不明時は確認 or 待つ（設定次第）** |
+| 消化トリガ | 起動時、`online`、`visibilitychange`、設定変更時、手動「今すぐ」 |
 
 ### 触る想定ファイル
 
 | 領域 | ファイル |
 |------|----------|
-| アップロード本体 | `src/hooks/fetchers/use-photos.ts` |
-| バッチ UI | `src/components/album-detail/album-detail.tsx` |
+| 設定 UI | `src/components/pages/SettingsPage.tsx` ほか |
 | 追加ダイアログ | `src/components/album-detail/album-detail-add-media-dialog.tsx` |
-| 新規 | `src/lib/upload-queue/`（IndexedDB ストア + drain） |
-| 設定（Phase 2） | `src/components/pages/SettingsPage` 周辺 |
+| バッチ処理 | `src/components/album-detail/album-detail.tsx` |
+| アップロード | `src/hooks/fetchers/use-photos.ts` |
+| 新規 | `src/lib/upload-queue/`、`src/stores/uploadSettingsStore.ts` など |
 
-### サーバー（Cloudflare）側
+---
 
-- **API 契約はそのままでよい**
-  - `POST /api/photos/album/:albumId/upload-url`
-  - `PUT`（signedUrl / upload-buffer）
-  - `POST /api/photos/album/:albumId`
-- R2 / D1 / Workers の追加バインディングは Phase 1 では不要
-- 将来、キューメタをサーバーに持ちたい場合のみ D1 テーブル検討（Blob 本体は引き続きクライアント）
+## 実装フェーズ
 
-### Wi-Fi 判定の現実的な扱い
+### Phase 1（今回の実装対象）
 
-```ts
-// イメージ（擬似コード）
-function canUploadNow(preferWifi: boolean): boolean {
-  if (!navigator.onLine) return false;
-  if (!preferWifi) return true;
+1. 設定トグル  
+   - モバイルデータでアップロード（デフォルト ON）  
+   - 追加時に毎回確認する（デフォルト OFF）  
+2. 毎回確認 ON、または モバイルデータ OFF かつ非 Wi-Fi 時のダイアログ  
+3. IndexedDB キュー + 再開  
+4. 「Wi-Fi 待ち N 件 / 今すぐ送信 / キャンセル」
 
-  const conn = (navigator as Navigator & {
-    connection?: { type?: string; effectiveType?: string; saveData?: boolean };
-  }).connection;
+### Phase 1.5
 
-  // Chromium 系のみ比較的使える
-  if (conn?.type === 'wifi' || conn?.type === 'ethernet') return true;
-  if (conn?.type === 'cellular') return false;
+- 動画はモバイルデータで送らない（デフォルト ON＝動画は Wi-Fi 待ち）  
+- 待機中サムネプレースホルダ
 
-  // 判定不能（特に iOS）→ ユーザー選択 or 確認ダイアログにフォールバック
-  return 'unknown';
-}
-```
+### Phase 2+
 
-**方針**: 自動判定を過信せず、「ユーザーが Wi-Fi で後でを選んだ」ことをキュー条件の主キーにする。
-
-### UX の最低ライン
-
-- 待機中アイテムの一覧（ファイル名、アルバム、追加時刻）
-- 「今すぐアップロード」（モバイル回線でも送る明示操作）
-- 「キャンセル」（キューから削除。端末 Blob も削除）
-- 送信完了トースト / 失敗時の再試行
+- Service Worker Background Sync（Android Chromium）  
+- 設定のアカウント同期  
+- ネイティブ検討は「アプリを閉じても確実に送りたい」が必須要件になったときだけ
 
 ---
 
 ## やらないこと（Phase 1）
 
-- Capacitor / ネイティブラップ
-- Cloudflare Queues による「Wi-Fi 待ち」
-- 外部アップロード基盤（Uploadcare 等）
-- Service Worker 必須化
+- Capacitor / ネイティブラップ  
+- Cloudflare Queues による Wi-Fi 待ち  
+- 「Google Photos 同等の常時バックグラウンド」を約束するコピー  
+- 外部アップロード SaaS  
 
 ---
 
-## 決定が必要なこと（実装前の確認）
+## 実装前の最終確認チェックリスト
 
-1. Phase 1 は **ダイアログ選択のみ**でよいか、最初から **設定トグル**も入れるか
-2. デフォルトは「今すぐ」か「Wi-Fi で後で」か（動画だけ後者、など）
-3. タブを閉じたあとも必ず送るか（IndexedDB 必須）／開いている間だけでよいか
-4. 待機中の写真をアルバム UI にプレースホルダ表示するか
-
-推奨デフォルト:
-
-1. ダイアログ選択（デフォルト「今すぐ」、動画は「Wi-Fi 推奨」を強調）
-2. IndexedDB でタブ再訪問後も再開
-3. プレースホルダは Phase 1 では簡易（件数バッジ + 待機リスト）で十分
+- [x] ダイアログ + 設定の両方  
+- [x] デフォルトは今すぐ（モバイルデータ ON）  
+- [x] 設定で Wi-Fi 選択肢の出し方を制御（毎回確認トグル）  
+- [x] バックグラウンドは「アプリ再開で確実」＋可能な範囲の自動再開（大手 Web 現実に合わせる）  
+- [ ] Phase 1 に「動画はモバイルデータで送らない」を含めるか → **推奨: Phase 1.5（効果は大きいがスコープ増）**
