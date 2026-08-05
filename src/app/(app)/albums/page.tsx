@@ -1,10 +1,12 @@
 import AlbumsPage from '@/components/pages/AlbumsPage';
-import { cookies } from 'next/headers';
+import { auth } from '@/lib/auth/auth';
+import { getValidatedGroupId } from '@/lib/group/get-current-group-id';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export default async function Albums() {
-  const cookieStore = await cookies();
-  const groupId = cookieStore.get('currentGroupId')?.value;
+  const session = await auth.api.getSession({ headers: await headers() });
+  const groupId = session ? await getValidatedGroupId(session.user.id) : null;
 
   if (!groupId) {
     redirect('/');

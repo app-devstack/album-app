@@ -1,7 +1,8 @@
 import { AppHeader } from '@/components/layout/app-header';
 import { GroupProvider } from '@/contexts/GroupContext';
+import { getValidatedGroupId } from '@/lib/group/get-current-group-id';
 import { auth } from '@/lib/auth/auth';
-import { cookies, headers } from 'next/headers';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export default async function AppLayout({
@@ -17,8 +18,7 @@ export default async function AppLayout({
     redirect('/login');
   }
 
-  const cookieStore = await cookies();
-  const groupId = cookieStore.get('currentGroupId')?.value ?? '';
+  const groupId = (await getValidatedGroupId(session.user.id)) ?? '';
 
   return (
     <GroupProvider initialGroupId={groupId}>

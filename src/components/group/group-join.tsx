@@ -46,9 +46,9 @@ export function GroupJoin({ token }: GroupJoinProps) {
   };
 
   const handleGoToGroup = () => {
-    // グループに属する最初のアルバムへ遷移（暫定: トップページ）
+    // 参加直後は新しいグループを選べるよう選択画面へ（暫定）
     // TODO: グループページ（/groups/:groupId）実装後に変更
-    router.push('/');
+    router.push('/?enableGroupSelect=true');
   };
 
   if (isPending) {

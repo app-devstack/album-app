@@ -236,7 +236,7 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
               icon={<ArrowLeftRightIcon size={16} />}
               label="グループを切り替え"
               description="所属しているグループを選び直す"
-              href="/"
+              href="/?enableGroupSelect=true"
             />
           </div>
         </section>

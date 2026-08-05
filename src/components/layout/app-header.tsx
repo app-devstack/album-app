@@ -151,6 +151,7 @@ interface UserMenuProps {
 }
 
 function UserMenu({ user, onSignOut }: UserMenuProps) {
+  const router = useRouter();
   const initial = user.name?.charAt(0)?.toUpperCase() ?? '?';
 
   return (
@@ -180,6 +181,14 @@ function UserMenu({ user, onSignOut }: UserMenuProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          onSelect={() => router.push('/?enableGroupSelect=true')}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <Users size={14} />
+          <span>グループを選択する</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
           onSelect={onSignOut}
           className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
         >
@@ -201,9 +210,10 @@ export function AppHeader({ user }: AppHeaderProps) {
   const onAccentChange = useAccentStore((state) => state.setAccent);
   const currentAccent = ACCENT_COLORS.find((a) => a.id === accent)!;
 
-  const { currentGroup } = useGroupContext();
+  const { currentGroup, setCurrentGroupId } = useGroupContext();
   const activeGroup = currentGroup.data ?? null;
   const handleSignOut = async () => {
+    setCurrentGroupId('');
     await signOut();
     router.push('/login');
   };

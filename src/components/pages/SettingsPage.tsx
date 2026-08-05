@@ -22,10 +22,11 @@ export function SettingsPage() {
   const { data, isPending } = useSession();
   const account = data?.user ?? null;
 
-  const { currentGroupId } = useGroupContext();
+  const { currentGroupId, setCurrentGroupId } = useGroupContext();
   const router = useRouter();
 
   const handleSignOut = async () => {
+    setCurrentGroupId('');
     await signOut();
     router.push('/login');
   };
@@ -70,7 +71,7 @@ export function SettingsPage() {
               icon={<ArrowLeftRightIcon size={16} />}
               label="グループを切り替え"
               description="所属しているグループを選び直す"
-              href="/"
+              href="/?enableGroupSelect=true"
             />
           </div>
         </section>
