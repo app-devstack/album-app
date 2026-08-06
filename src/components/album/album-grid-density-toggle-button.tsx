@@ -8,7 +8,10 @@ export interface AlbumGridDensityToggleButtonProps {
   onBeforeDensityChange?: () => void;
 }
 
-/** 一覧ヘッダーの列数トグル（2列基準 / 3列基準）。 */
+/**
+ * 一覧ヘッダーの列数トグル（2列基準 / 3列基準）。
+ * @description グリッド表示時のみ親でマウントすること。リスト表示では非表示。
+ */
 export function AlbumGridDensityToggleButton({
   onBeforeDensityChange,
 }: AlbumGridDensityToggleButtonProps) {

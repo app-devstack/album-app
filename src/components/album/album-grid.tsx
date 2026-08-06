@@ -3,7 +3,9 @@
 import { AlbumCard } from '@/components/album/album-card';
 import { AlbumGridDensityToggleButton } from '@/components/album/album-grid-density-toggle-button';
 import { AlbumGridSortControlButton } from '@/components/album/album-grid-sort-control-button';
-import { Album } from '@/db/schema';
+import { AlbumListRow } from '@/components/album/album-list-row';
+import { AlbumListViewToggleButton } from '@/components/album/album-list-view-toggle-button';
+import { Album, Photo } from '@/db/schema';
 import { useFlipLayoutAnimation } from '@/hooks/use-flip-layout';
 import { ACCENT_COLORS, type AccentColor } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -13,8 +15,14 @@ import {
 } from '@/stores/albumListStore';
 import { Plus } from 'lucide-react';
 
+/** 一覧に表示するアルバム（API 拡張フィールドを含む）。 */
+type AlbumListItem = Album & {
+  latestPhoto?: Photo | null;
+  photoCount?: number;
+};
+
 interface AlbumGridProps {
-  albums: Album[];
+  albums: AlbumListItem[];
   accent: AccentColor;
   onAlbumClick: (album: Album) => void;
   onCreateClick: () => void;
@@ -25,7 +33,7 @@ const GRID_CLASS: Record<AlbumGridDensity, string> = {
   compact: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4',
 };
 
-/** グループのアルバムをグリッドで一覧表示し、列密度の切り替えと新規作成 FAB を提供する。 */
+/** グループのアルバムを一覧表示し、表示モード切替・新規作成 FAB を提供する。 */
 export function AlbumGrid({
   albums,
   accent,
@@ -33,6 +41,7 @@ export function AlbumGrid({
   onCreateClick,
 }: AlbumGridProps) {
   const accentConfig = ACCENT_COLORS.find((a) => a.id === accent)!;
+  const viewMode = useAlbumListStore((s) => s.viewMode);
   const gridDensity = useAlbumListStore((s) => s.gridDensity);
   const { rootRef: gridRef, captureBeforeLayoutChange } =
     useFlipLayoutAnimation({ layoutKey: gridDensity });
@@ -50,29 +59,42 @@ export function AlbumGrid({
           </p>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-2 sm:pt-0.5">
-          {/* 列密度トグルボタン */}
-          <AlbumGridDensityToggleButton
-            onBeforeDensityChange={captureBeforeLayoutChange}
-          />
+          <AlbumListViewToggleButton />
 
-          {/* ソートコントロールボタン */}
+          {viewMode === 'grid' && (
+            <AlbumGridDensityToggleButton
+              onBeforeDensityChange={captureBeforeLayoutChange}
+            />
+          )}
+
           <AlbumGridSortControlButton />
         </div>
       </div>
 
-      {/* グリッド */}
-      <div ref={gridRef} className={cn('grid', GRID_CLASS[gridDensity])}>
-        {albums.map((album) => (
-          <div key={album.id} data-flip-item className="min-w-0">
-            <AlbumCard
+      {viewMode === 'list' ? (
+        <div className="grid grid-cols-1 gap-y-0.5 lg:grid-cols-2 lg:gap-x-5 lg:gap-y-1">
+          {albums.map((album) => (
+            <AlbumListRow
+              key={album.id}
               album={album}
-              accent={accent}
-              gridDensity={gridDensity}
               onClick={() => onAlbumClick(album)}
             />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div ref={gridRef} className={cn('grid', GRID_CLASS[gridDensity])}>
+          {albums.map((album) => (
+            <div key={album.id} data-flip-item className="min-w-0">
+              <AlbumCard
+                album={album}
+                accent={accent}
+                gridDensity={gridDensity}
+                onClick={() => onAlbumClick(album)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 新規作成ボタン (FAB) */}
       <button
