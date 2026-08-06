@@ -1,10 +1,22 @@
 import db from '@/db';
-import { albums, groupMembers, photos } from '@/db/schema';
+import {
+  albums,
+  groupMembers,
+  photos,
+  type Album,
+  type Photo,
+} from '@/db/schema';
 import {
   DEFAULT_ALBUM_SORT_ORDER,
   type AlbumSortOrder,
 } from '@/lib/album-sort-order';
-import { and, asc, desc, eq, isNotNull, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNotNull, or } from 'drizzle-orm';
+
+/** 一覧 API で返す1件分のアルバム（最新写真・枚数付き）。 */
+export type AlbumListItem = Album & {
+  latestPhoto: Photo | null;
+  photoCount: number;
+};
 
 /** `canUserAccessAlbum` 判定に使うアルバム行の最小フィールド。 */
 export type AlbumAccessFields = {
@@ -33,16 +45,16 @@ export async function canUserAccessAlbum(
 }
 
 /**
- * 指定グループに属するアルバムを取得する（作成日でソート）
+ * 指定グループに属するアルバム一覧を取得する（最新写真・枚数付き）。
  */
 export async function getAllAlbums(
   groupId: string,
   sort: AlbumSortOrder = DEFAULT_ALBUM_SORT_ORDER
-) {
+): Promise<AlbumListItem[]> {
   const orderBy =
     sort === 'created_asc' ? [asc(albums.createdAt)] : [desc(albums.createdAt)];
 
-  return await db.query.albums.findMany({
+  const albumRows = await db.query.albums.findMany({
     where: eq(albums.groupId, groupId),
     orderBy,
     with: {
@@ -56,6 +68,26 @@ export async function getAllAlbums(
       },
     },
   });
+
+  const photoCountRows = await db
+    .select({
+      albumId: photos.albumId,
+      photoCount: count(),
+    })
+    .from(photos)
+    .innerJoin(albums, eq(photos.albumId, albums.id))
+    .where(eq(albums.groupId, groupId))
+    .groupBy(photos.albumId);
+
+  const photoCountByAlbumId = new Map(
+    photoCountRows.map((row) => [row.albumId, row.photoCount])
+  );
+
+  return albumRows.map(({ photos: latestPhotos, ...album }) => ({
+    ...album,
+    latestPhoto: latestPhotos[0] ?? null,
+    photoCount: photoCountByAlbumId.get(album.id) ?? 0,
+  }));
 }
 
 /**

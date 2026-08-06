@@ -5,6 +5,7 @@ import {
 import { Album } from '@/db/schema';
 import type { AlbumSortOrder } from '@/lib/album-sort-order';
 import { api } from '@/lib/api';
+import type { AlbumListItem } from '@/lib/service/albums';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Query Keys
@@ -22,7 +23,10 @@ export const albumKeys = {
 type CreateAlbumPayload = CreateAlbumSchema;
 
 // Fetchers
-const getAlbums = async (groupId: string, sort: AlbumSortOrder) => {
+const getAlbums = async (
+  groupId: string,
+  sort: AlbumSortOrder
+): Promise<AlbumListItem[]> => {
   const res = await api.albums.$get({ query: { groupId, sort } });
   if (!res.ok) {
     throw new Error('Failed to fetch albums');

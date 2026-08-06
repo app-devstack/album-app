@@ -72,12 +72,7 @@ export const albumsRouter = router
     const sort: AlbumSortOrder = sortParsed.data ?? DEFAULT_ALBUM_SORT_ORDER;
 
     const albumsWithLatest = await getAllAlbums(groupId, sort);
-    return c.json(
-      albumsWithLatest.map(({ photos: ph, ...alb }) => ({
-        ...alb,
-        latestPhoto: ph[0] ?? null,
-      }))
-    );
+    return c.json(albumsWithLatest);
   })
   .get('/:id/cover-optimized', async (c) => {
     const user = await getSessionUser(c);
