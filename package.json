@@ -2,6 +2,7 @@
   "name": "album-app",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.33.3",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -113,6 +114,11 @@
     "overrides": {
       "@types/react": "19.2.14",
       "@types/react-dom": "19.2.3"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }
