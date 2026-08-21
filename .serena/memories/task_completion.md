@@ -1,7 +1,8 @@
-# When a coding task is finished
+# Task completion
 
-1. Run **`pnpm lint`** and fix ESLint issues.
-2. Run **`pnpm type-check`** and fix TypeScript errors (do not rely on `ignoreBuildErrors` for production readiness).
-3. If DB schema or `wrangler.jsonc` bindings changed: run **`pnpm db:generate`** / **`pnpm db:migrate`** as appropriate and **`pnpm run cf-typegen`**.
-4. Manually exercise critical flows in **`pnpm dev`** or **`pnpm dev:vinext`** when the change touches Workers, R2, or D1.
-5. No automated test script is wired in `package.json` yet — run project-specific tests if added later.
+1. `pnpm lint` and fix.
+2. `pnpm type-check` (web). If `apps/native` changed: `cd apps/native && pnpm type-check`.
+3. Schema or wrangler bindings changed: `pnpm db:generate` / `pnpm db:migrate` as needed + `pnpm run cf-typegen`.
+4. Touch Workers / R2 / D1: smoke in `pnpm dev:vinext`. Touch native upload / OAuth / insets: needs a real native build (`pnpm native:build:*`). If the WebView loads production origin, web changes need `pnpm deploy:vinext` before they take effect on device.
+5. No root `test` script — run tests only if added.
+6. Remove debug instrumentation (console/fetch logs, agent log regions) before considering done.
