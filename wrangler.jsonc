@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "album-app",
-  "compatibility_date": "2026-03-24",
+  "compatibility_date": "2026-03-17",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./worker/index.ts",
   "assets": {
@@ -12,4 +12,21 @@
   "images": {
     "binding": "IMAGES",
   },
+  "media": {
+    "binding": "MEDIA",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "album-app-db",
+      "database_id": "1c372859-2e54-4419-9b4e-51a3f4e988d5",
+      "migrations_dir": "./drizzle/",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "album-app-media",
+    },
+  ],
 }
