@@ -1,0 +1,5 @@
+{
+  "name": "wifi-constrained-uploader",
+  "version": "0.1.0",
+  "main": "index.ts"
+}

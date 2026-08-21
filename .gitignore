@@ -34,3 +34,11 @@ CLAUDE.md
 # misc
 .notes/
 tsconfig.tsbuildinfo
+
+# Native release copies (`scripts/build-native-*.sh`)
+/build/android/*.apk
+/build/android/*.aab
+/build/ios/*.ipa
+
+# Local files
+local/*

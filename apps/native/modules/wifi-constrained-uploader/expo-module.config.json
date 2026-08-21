@@ -1,0 +1,10 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["WifiConstrainedUploaderModule"],
+    "appDelegateSubscribers": ["WifiConstrainedUploaderAppDelegate"]
+  },
+  "android": {
+    "modules": ["expo.modules.wificonstraineduploader.WifiConstrainedUploaderModule"]
+  }
+}

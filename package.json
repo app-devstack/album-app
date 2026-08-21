@@ -14,6 +14,8 @@
     "deploy:vinext": "dotenv -c production -- vinext deploy",
     "type-check": "tsc --noEmit",
     "secrets:upload": "sh scripts/upload-secrets.sh",
+    "native:build:android": "bash scripts/build-native-android.sh",
+    "native:build:ios": "bash scripts/build-native-ios.sh",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply album-app-db",
     "db:migrate:remote": "wrangler d1 migrations apply album-app-db --remote",
