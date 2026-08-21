@@ -8,9 +8,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { type AccentColorConfig } from '@/lib/data';
+import { isNative } from '@/lib/native-bridge';
 import { cn } from '@/lib/utils';
 import { Film, ImagePlus } from 'lucide-react';
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 
 /** メディア追加ダイアログに渡すプロパティ。 */
 export interface AlbumDetailAddMediaDialogProps {
@@ -20,6 +21,7 @@ export interface AlbumDetailAddMediaDialogProps {
   accentConfig: AccentColorConfig;
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onVideoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onNativePick?: (mediaType: 'image' | 'video') => void; // Native ラッパー内では file input の代わりに呼ぶ
 }
 
 /**
@@ -33,10 +35,16 @@ export function AlbumDetailAddMediaDialog({
   accentConfig,
   onImageChange,
   onVideoChange,
+  onNativePick,
 }: AlbumDetailAddMediaDialogProps) {
   const imageInputId = useId();
   const videoInputId = useId();
   const busy = mediaUploadInProgress;
+  const [nativeReady, setNativeReady] = useState(false);
+
+  useEffect(() => {
+    setNativeReady(isNative());
+  }, []);
 
   return (
     <Dialog
@@ -82,7 +90,14 @@ export function AlbumDetailAddMediaDialog({
               写真
             </span>
             <label
-              htmlFor={imageInputId}
+              {...(nativeReady
+                ? {
+                    onClick: (e: React.MouseEvent<HTMLLabelElement>) => {
+                      e.preventDefault();
+                      if (!busy) onNativePick?.('image');
+                    },
+                  }
+                : { htmlFor: imageInputId })}
               className={cn(
                 'group relative flex min-h-[118px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20 px-2 py-4 text-center transition-[border-color,background-color,box-shadow] sm:min-h-[140px] sm:gap-2 sm:px-4 sm:py-6',
                 'hover:border-muted-foreground/45 hover:bg-muted/35',
@@ -109,15 +124,17 @@ export function AlbumDetailAddMediaDialog({
                 <span className="text-muted-foreground/80">複数選択可</span>
               </span>
             </label>
-            <input
-              id={imageInputId}
-              type="file"
-              accept="image/*"
-              multiple
-              disabled={busy}
-              onChange={onImageChange}
-              className="sr-only"
-            />
+            {!nativeReady ? (
+              <input
+                id={imageInputId}
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={busy}
+                onChange={onImageChange}
+                className="sr-only"
+              />
+            ) : null}
           </div>
 
           <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2">
@@ -125,7 +142,14 @@ export function AlbumDetailAddMediaDialog({
               動画
             </span>
             <label
-              htmlFor={videoInputId}
+              {...(nativeReady
+                ? {
+                    onClick: (e: React.MouseEvent<HTMLLabelElement>) => {
+                      e.preventDefault();
+                      if (!busy) onNativePick?.('video');
+                    },
+                  }
+                : { htmlFor: videoInputId })}
               className={cn(
                 'group relative flex min-h-[118px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20 px-2 py-4 text-center transition-[border-color,background-color,box-shadow] sm:min-h-[140px] sm:gap-2 sm:px-4 sm:py-6',
                 'hover:border-muted-foreground/45 hover:bg-muted/35',
@@ -148,15 +172,17 @@ export function AlbumDetailAddMediaDialog({
                 <span className="text-muted-foreground/80">複数選択可</span>
               </span>
             </label>
-            <input
-              id={videoInputId}
-              type="file"
-              accept="video/*"
-              multiple
-              disabled={busy}
-              onChange={onVideoChange}
-              className="sr-only"
-            />
+            {!nativeReady ? (
+              <input
+                id={videoInputId}
+                type="file"
+                accept="video/*"
+                multiple
+                disabled={busy}
+                onChange={onVideoChange}
+                className="sr-only"
+              />
+            ) : null}
           </div>
         </div>
 

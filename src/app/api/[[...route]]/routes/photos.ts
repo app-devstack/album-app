@@ -24,6 +24,7 @@ const uploadUrlSchema = z.object({
   filename: z.string().min(1, 'ファイル名は必須です'),
   contentType: z.string().min(1, 'Content-Typeは必須です'),
   fileSize: z.number().positive('ファイルサイズは必須です'),
+  expiresIn: z.number().int().min(60).max(604800).optional(),
 });
 
 const createPhotoSchema = z.object({
@@ -138,7 +139,7 @@ export const photosRouter = router
     async (c) => {
       try {
         const albumId = c.req.param('albumId');
-        const { filename, contentType, fileSize } = c.req.valid('json');
+        const { filename, contentType, fileSize, expiresIn } = c.req.valid('json');
 
         // ファイルタイプの検証
         if (!r2Manager.validateFileType(contentType)) {
@@ -181,7 +182,11 @@ export const photosRouter = router
           });
         }
 
-        const result = await r2Manager.createPresignedUrl(key, contentType);
+        const result = await r2Manager.createPresignedUrl(
+          key,
+          contentType,
+          expiresIn ?? 3600
+        );
 
         return c.json({
           ...result,

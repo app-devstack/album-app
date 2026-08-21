@@ -6,6 +6,7 @@ import { downloadRouter } from './routes/download';
 import { groupsRouter } from './routes/groups';
 import { joinRouter } from './routes/join';
 import { memosRouter } from './routes/memos';
+import { nativeOAuthHandoffRouter } from './routes/native-oauth-handoff';
 import { photosRouter } from './routes/photos';
 import { profileRouter } from './routes/profile';
 
@@ -20,6 +21,7 @@ const route = app
   })
   .get('/', (c) => c.json({ message: 'Welcome to the Album API' }))
   .route('/auth', authRouter)
+  .route('/native-oauth-handoff', nativeOAuthHandoffRouter)
   .route('/albums', albumsRouter)
   .route('/groups', groupsRouter)
   .route('/join', joinRouter)

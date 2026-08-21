@@ -1,7 +1,9 @@
 import db from '@/db';
 import * as schema from '@/db/schema';
+import { nativeOAuthRedirectPlugin } from '@/lib/auth/native-oauth-redirect-plugin';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { bearer } from 'better-auth/plugins';
 import { env } from 'cloudflare:workers';
 
 const productionURL = env.BETTER_AUTH_URL;
@@ -15,7 +17,11 @@ export const auth = betterAuth({
     'http://localhost:3000',
     'http://localhost:3001',
     productionURL,
+    'album://',
+    'album://oauth',
+    'album://*',
   ],
+  plugins: [bearer(), nativeOAuthRedirectPlugin()],
   database: drizzleAdapter(db, {
     provider: 'sqlite',
     schema: {

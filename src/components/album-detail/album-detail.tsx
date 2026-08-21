@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Loading } from '@/components/ui/loading';
@@ -12,6 +13,7 @@ import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
 import { albumKeys } from '@/hooks/fetchers/use-albums';
 import {
+  photoKeys,
   useCreatePhoto,
   useDeletePhoto,
   usePhotos,
@@ -23,6 +25,11 @@ import {
   type AccentColorConfig,
 } from '@/lib/data';
 import { formatJapaneseDate } from '@/lib/date';
+import {
+  isNative,
+  sendToNative,
+  type NativePendingUploadItem,
+} from '@/lib/native-bridge';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -36,12 +43,15 @@ import {
   Settings2,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlbumDetailAddMediaCell } from './album-detail-add-media-cell';
 import { AlbumDetailAddMediaDialog } from './album-detail-add-media-dialog';
-import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
-import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
 import { AlbumDetailDeleteDialog } from './album-detail-delete-dialog';
+import { AlbumDetailLightboxDialog } from './album-detail-lightbox-dialog';
+import { AlbumDetailPendingPhotoCell } from './album-detail-pending-photo-cell';
+import { AlbumDetailPendingUploadDeleteDialog } from './album-detail-pending-upload-delete-dialog';
+import { AlbumDetailPendingUploadRetryDialog } from './album-detail-pending-upload-retry-dialog';
+import { AlbumDetailPhotoCell } from './album-detail-photo-cell';
 import { AlbumDetailSettingsDialog } from './album-detail-settings-dialog';
 import { AlbumDetailUploadingOverlay } from './album-detail-uploading-overlay';
 import { AlbumDetailMemoSection } from './memos/album-detail-memo-section';
@@ -88,6 +98,19 @@ export function AlbumDetail({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(album.title);
   const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
+  const [pendingUploads, setPendingUploads] = useState<
+    NativePendingUploadItem[]
+  >([]);
+  const [retryDialogItemId, setRetryDialogItemId] = useState<string | null>(
+    null
+  );
+  const [retryDialogMode, setRetryDialogMode] = useState<
+    'failed' | 'pending-retry' | null
+  >(null);
+  const lastPendingNetworkTapIdRef = useRef<string | null>(null);
+  const [cancelConfirmItemId, setCancelConfirmItemId] = useState<string | null>(
+    null
+  );
   const [addMediaDialogOpen, setAddMediaDialogOpen] = useState(false);
   /** ファイル確定〜バッチ完了まで。ダイアログクローズや二重取得を抑止する。 */
   const [mediaUploadInProgress, setMediaUploadInProgress] = useState(false);
@@ -102,15 +125,157 @@ export function AlbumDetail({
     if (!lightboxPhotoId || isLoadingPhotos) return;
     if (photos.some((p) => p.id === lightboxPhotoId)) return;
     onStripInvalidPhotoQuery();
-  }, [
-    isLoadingPhotos,
-    lightboxPhotoId,
-    onStripInvalidPhotoQuery,
-    photos,
-  ]);
+  }, [isLoadingPhotos, lightboxPhotoId, onStripInvalidPhotoQuery, photos]);
+
+  useEffect(() => {
+    if (isNative()) {
+      sendToNative({ type: 'GET_PENDING_UPLOADS', albumId: album.id });
+      setPendingUploads([]);
+    }
+
+    const onUploadQueued = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{
+          albumId: string;
+          item?: NativePendingUploadItem;
+        }>
+      ).detail;
+      if (!detail || detail.albumId !== album.id || !detail.item) return;
+      const item = detail.item;
+      setPendingUploads((prev) => {
+        const nextItem: NativePendingUploadItem = {
+          ...item,
+          status: item.status ?? 'pending',
+        };
+        const index = prev.findIndex((pending) => pending.id === nextItem.id);
+        if (index === -1) return [...prev, nextItem];
+        const next = [...prev];
+        next[index] = nextItem;
+        return next;
+      });
+    };
+
+    const onPendingUploads = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{
+          albumId: string;
+          items: NativePendingUploadItem[];
+        }>
+      ).detail;
+      if (!detail || detail.albumId !== album.id) return;
+      setPendingUploads(
+        detail.items.map((item) => ({
+          ...item,
+          status: item.status ?? 'pending',
+        }))
+      );
+    };
+
+    const onUploadComplete = (e: Event) => {
+      const detail = (e as CustomEvent<{ albumId: string; id?: string }>)
+        .detail;
+      if (detail?.albumId && detail.albumId !== album.id) return;
+      if (isNative() && detail?.id) {
+        setPendingUploads((prev) =>
+          prev.filter((pending) => pending.id !== detail.id)
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: photoKeys.lists(album.id) });
+      queryClient.invalidateQueries({ queryKey: albumKeys.detail(album.id) });
+    };
+
+    const onUploadFailed = (e: Event) => {
+      const detail = (e as CustomEvent<{ albumId: string; id: string }>).detail;
+      if (!detail || detail.albumId !== album.id) return;
+      setPendingUploads((prev) =>
+        prev.map((pending) =>
+          pending.id === detail.id
+            ? { ...pending, status: 'failed' as const }
+            : pending
+        )
+      );
+    };
+
+    const onUploadCancelled = (e: Event) => {
+      const detail = (e as CustomEvent<{ albumId: string; id: string }>).detail;
+      if (!detail || detail.albumId !== album.id) return;
+      setPendingUploads((prev) =>
+        prev.filter((pending) => pending.id !== detail.id)
+      );
+    };
+
+    const onNetworkState = (e: Event) => {
+      const onWifi =
+        (e as CustomEvent<{ onWifi: boolean }>).detail?.onWifi === true;
+      const id = lastPendingNetworkTapIdRef.current;
+      if (!id) return;
+      lastPendingNetworkTapIdRef.current = null;
+      if (onWifi) {
+        setRetryDialogMode('pending-retry');
+        setRetryDialogItemId(id);
+      } else {
+        setCancelConfirmItemId(id);
+      }
+    };
+
+    if (isNative()) {
+      window.addEventListener('native:uploadQueued', onUploadQueued);
+      window.addEventListener('native:pendingUploads', onPendingUploads);
+      window.addEventListener('native:uploadFailed', onUploadFailed);
+      window.addEventListener('native:uploadCancelled', onUploadCancelled);
+      window.addEventListener('native:networkState', onNetworkState);
+    }
+    window.addEventListener('native:uploadComplete', onUploadComplete);
+
+    return () => {
+      if (isNative()) {
+        window.removeEventListener('native:uploadQueued', onUploadQueued);
+        window.removeEventListener('native:pendingUploads', onPendingUploads);
+        window.removeEventListener('native:uploadFailed', onUploadFailed);
+        window.removeEventListener('native:uploadCancelled', onUploadCancelled);
+        window.removeEventListener('native:networkState', onNetworkState);
+      }
+      window.removeEventListener('native:uploadComplete', onUploadComplete);
+    };
+  }, [album.id, queryClient]);
 
   const handleDeletePhoto = async (photoId: string) => {
     await deletePhotoMutation(photoId);
+  };
+
+  const handleRetryPendingUpload = (id: string) => {
+    setRetryDialogItemId(null);
+    setRetryDialogMode(null);
+    setPendingUploads((prev) =>
+      prev.map((pending) =>
+        pending.id === id ? { ...pending, status: 'pending' as const } : pending
+      )
+    );
+    sendToNative({ type: 'RETRY_PENDING_UPLOAD', id });
+  };
+
+  const handleRequestCancelPendingUpload = (id: string) => {
+    setRetryDialogItemId(null);
+    setRetryDialogMode(null);
+    setCancelConfirmItemId(id);
+  };
+
+  const handlePendingUploadPress = (item: NativePendingUploadItem) => {
+    if (item.status === 'failed') {
+      setRetryDialogMode('failed');
+      setRetryDialogItemId(item.id);
+      return;
+    }
+    lastPendingNetworkTapIdRef.current = item.id;
+    sendToNative({ type: 'GET_NETWORK_STATE' });
+  };
+
+  const handleConfirmCancelPendingUpload = () => {
+    const id = cancelConfirmItemId;
+    setCancelConfirmItemId(null);
+    if (!id) return;
+    setPendingUploads((prev) => prev.filter((pending) => pending.id !== id));
+    sendToNative({ type: 'CANCEL_PENDING_UPLOAD', id });
   };
 
   const handleAddMediaBatch = async (
@@ -219,9 +384,11 @@ export function AlbumDetail({
           isLoadingPhotos={isLoadingPhotos}
           photos={photos}
           uploadingItems={uploadingItems}
+          pendingUploads={pendingUploads}
           accentConfig={accentConfig}
           onAddClick={() => setAddMediaDialogOpen(true)}
           onOpenLightbox={(item) => onOpenLightbox(item.id)}
+          onPendingUploadPress={handlePendingUploadPress}
         />
 
         <AlbumDetailMemoSection
@@ -229,6 +396,7 @@ export function AlbumDetail({
           onAddPhoto={() => setAddMediaDialogOpen(true)}
         />
 
+        {/* 写真・動画追加用ダイアログ */}
         <AlbumDetailAddMediaDialog
           open={addMediaDialogOpen}
           onOpenChange={setAddMediaDialogOpen}
@@ -236,8 +404,17 @@ export function AlbumDetail({
           accentConfig={accentConfig}
           onImageChange={(ev) => void handleAddMediaBatch(ev, 'image')}
           onVideoChange={(ev) => void handleAddMediaBatch(ev, 'video')}
+          onNativePick={(mediaType) => {
+            sendToNative({
+              type: 'OPEN_PICKER',
+              albumId: album.id,
+              mediaType,
+            });
+            setAddMediaDialogOpen(false);
+          }}
         />
 
+        {/* 写真・動画の拡大表示用ダイアログ */}
         <AlbumDetailLightboxDialog
           item={lightboxItem}
           accentText={accentConfig.text}
@@ -248,6 +425,7 @@ export function AlbumDetail({
           }}
         />
 
+        {/* アルバム設定（タイトル・カバー）用ダイアログ */}
         <AlbumDetailSettingsDialog
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
@@ -263,6 +441,7 @@ export function AlbumDetail({
           accentBg={cn(accentConfig.bg, accentConfig.bgHover)}
         />
 
+        {/* アルバム削除確認用ダイアログ */}
         <AlbumDetailDeleteDialog
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
@@ -270,6 +449,37 @@ export function AlbumDetail({
             await onAlbumDelete(album.id);
             onBack();
           }}
+        />
+
+        {/* 送信待ちの再送・取消用ダイアログ */}
+        <AlbumDetailPendingUploadRetryDialog
+          open={retryDialogItemId != null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setRetryDialogItemId(null);
+              setRetryDialogMode(null);
+            }
+          }}
+          mode={retryDialogMode ?? 'failed'}
+          onCancelPending={() => {
+            if (retryDialogItemId) {
+              handleRequestCancelPendingUpload(retryDialogItemId);
+            }
+          }}
+          onRetry={() => {
+            if (retryDialogItemId) {
+              handleRetryPendingUpload(retryDialogItemId);
+            }
+          }}
+        />
+
+        {/* 送信待ち削除の最終確認用ダイアログ */}
+        <AlbumDetailPendingUploadDeleteDialog
+          open={cancelConfirmItemId != null}
+          onOpenChange={(open) => {
+            if (!open) setCancelConfirmItemId(null);
+          }}
+          onConfirm={handleConfirmCancelPendingUpload}
         />
       </AlbumMemoProvider>
     </main>
@@ -280,26 +490,38 @@ interface AlbumMediaGridProps {
   isLoadingPhotos: boolean;
   photos: Photo[];
   uploadingItems: UploadingItem[];
+  pendingUploads: NativePendingUploadItem[];
   accentConfig: AccentColorConfig;
   onAddClick: () => void;
   onOpenLightbox: (item: Photo) => void;
+  onPendingUploadPress: (item: NativePendingUploadItem) => void;
 }
 
 function AlbumMediaGrid({
   isLoadingPhotos,
   photos,
   uploadingItems,
+  pendingUploads,
   accentConfig,
   onAddClick,
   onOpenLightbox,
+  onPendingUploadPress,
 }: AlbumMediaGridProps) {
   if (isLoadingPhotos) {
     return (
-      <Loading variant="section" message="写真を読み込み中..." className="py-16" />
+      <Loading
+        variant="section"
+        message="写真を読み込み中..."
+        className="py-16"
+      />
     );
   }
 
-  if (photos.length === 0 && uploadingItems.length === 0) {
+  if (
+    photos.length === 0 &&
+    uploadingItems.length === 0 &&
+    pendingUploads.length === 0
+  ) {
     return (
       <EmptyMediaState accentConfig={accentConfig} onAddClick={onAddClick} />
     );
@@ -314,6 +536,16 @@ function AlbumMediaGrid({
             item={item}
             accentConfig={accentConfig}
             onOpen={onOpenLightbox}
+          />
+        ))}
+
+        {pendingUploads.map((item) => (
+          <AlbumDetailPendingPhotoCell
+            key={item.id}
+            previewDataUrl={item.previewDataUrl}
+            mediaType={item.mediaType}
+            status={item.status ?? 'pending'}
+            onPress={() => onPendingUploadPress(item)}
           />
         ))}
 
@@ -430,7 +662,12 @@ interface AlbumHeaderProps {
 }
 
 /** アルバム詳細画面の上部に表示するヘッダーコンポーネント。 */
-function AlbumHeader({ title, onBack, onEditOpen, onDeleteOpen }: AlbumHeaderProps) {
+function AlbumHeader({
+  title,
+  onBack,
+  onEditOpen,
+  onDeleteOpen,
+}: AlbumHeaderProps) {
   return (
     <div className="flex items-center gap-3">
       <Button
@@ -463,15 +700,16 @@ function AlbumHeader({ title, onBack, onEditOpen, onDeleteOpen }: AlbumHeaderPro
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[10rem]">
             <DropdownMenuItem
-              className="cursor-pointer gap-2"
+              className="cursor-pointer gap-2 py-3 text-base"
               onSelect={() => onEditOpen()}
             >
               <Settings2 className="shrink-0" />
               アルバムを編集
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              className="cursor-pointer gap-2"
+              className="cursor-pointer gap-2 py-3 text-base"
               onSelect={() => onDeleteOpen()}
             >
               <Trash2 className="shrink-0" />
