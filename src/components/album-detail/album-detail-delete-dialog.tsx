@@ -60,10 +60,11 @@ export function AlbumDetailDeleteDialog({
             この操作は取り消せません。アルバム内の写真・動画もすべて削除されます。
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="gap-2 sm:gap-2">
+        <DialogFooter>
           <Button
             type="button"
             variant="ghost"
+            size="dialog"
             disabled={busy}
             onClick={() => onOpenChange(false)}
           >
@@ -72,6 +73,7 @@ export function AlbumDetailDeleteDialog({
           <Button
             type="button"
             variant="destructive"
+            size="dialog"
             disabled={busy}
             onClick={() => void handleConfirm()}
           >

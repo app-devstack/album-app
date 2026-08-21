@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Photo } from '@/db/schema';
@@ -235,6 +236,7 @@ export function AlbumDetailLightboxDialog({
                     サムネイルを再生成
                   </DropdownMenuItem>
                 )}
+                {item.mediaType === 'video' && <DropdownMenuSeparator />}
                 <DropdownMenuItem
                   variant="destructive"
                   onSelect={() => void handleDelete()}

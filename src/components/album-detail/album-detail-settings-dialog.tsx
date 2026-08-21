@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -145,19 +146,23 @@ export function AlbumDetailSettingsDialog({
               )}
             </div>
           </div>
-
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              キャンセル
-            </Button>
-            <Button
-              onClick={onSave}
-              className={cn('text-white', accentBg)}
-            >
-              保存
-            </Button>
-          </div>
         </div>
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            size="dialog"
+            onClick={() => onOpenChange(false)}
+          >
+            キャンセル
+          </Button>
+          <Button
+            size="dialog"
+            onClick={onSave}
+            className={cn('text-white', accentBg)}
+          >
+            保存
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

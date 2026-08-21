@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -80,33 +81,31 @@ export function CreateAlbumDialog({
               />
             </div>
           </div>
-
-          {/* フッター操作 */}
-          <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="gap-1.5 text-muted-foreground"
-            >
-              <ArrowLeft size={13} />
-              戻る
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={handleCreate}
-              className={cn(
-                'gap-1.5 text-white',
-                accentConfig.bg,
-                accentConfig.bgHover
-              )}
-            >
-              作成する
-              <Check size={13} />
-            </Button>
-          </div>
         </div>
+
+        <DialogFooter className="px-6 pb-6 pt-5">
+          <Button
+            variant="ghost"
+            size="dialog"
+            onClick={handleClose}
+            className="gap-1.5 text-muted-foreground"
+          >
+            <ArrowLeft size={13} />
+            戻る
+          </Button>
+          <Button
+            size="dialog"
+            onClick={handleCreate}
+            className={cn(
+              'gap-1.5 text-white',
+              accentConfig.bg,
+              accentConfig.bgHover
+            )}
+          >
+            作成する
+            <Check size={13} />
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -305,10 +305,16 @@ function EditGroupNameDialog({
           autoFocus
         />
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button
+            variant="ghost"
+            size="dialog"
+            onClick={onClose}
+            disabled={saving}
+          >
             キャンセル
           </Button>
           <Button
+            size="dialog"
             onClick={handleSave}
             disabled={!name.trim() || name.trim() === currentName || saving}
           >
