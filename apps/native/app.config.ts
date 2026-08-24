@@ -20,11 +20,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       UIBackgroundModes: ['fetch'],
     },
   },
+  notification: {
+    icon: './assets/notification-icon.png',
+  },
   android: {
     package: 'com.r.t7maru.albumnative',
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
-      backgroundColor: '#FFEDF4',
+      backgroundColor: '#FEFBF8',
+      backgroundImage: './assets/android-icon-background.png',
+      monochromeImage: './assets/android-icon-monochrome.png',
     },
     permissions: [
       'INTERNET',
