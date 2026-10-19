@@ -17,6 +17,7 @@ const downloadPhotoParamSchema = z.object({
 
 const downloadPhotoQuerySchema = z.object({
   size: z.enum(['full', 'optimized']),
+  probe: z.literal('1').optional(), // 1 のとき動画はボディを返さず保存名だけ返す
 });
 
 /**
@@ -35,6 +36,8 @@ function extensionFromContentType(contentType: string): string {
   if (ct.includes('gif')) return '.gif';
   if (ct.includes('heic')) return '.heic';
   if (ct.includes('heif')) return '.heif';
+  if (ct.includes('mp4')) return '.mp4';
+  if (ct.includes('quicktime')) return '.mov';
   return '.bin';
 }
 
@@ -51,7 +54,8 @@ function contentDispositionAttachment(filename: string): string {
 const router = createApp();
 
 /**
- * GET `/download/photo/:photoId?size=` — アルバム権限がある場合のみ写真をダウンロード用レスポンスで返す。
+ * GET `/download/photo/:photoId?size=` — アルバム権限がある場合のみダウンロード用レスポンスを返す。
+ * @description 動画は `size=full` の元ファイルをストリームで返す。`probe=1` のときはボディなしで保存名だけ返す。
  */
 export const downloadRouter = router
   .use(requireSessionUser404)
@@ -66,7 +70,7 @@ export const downloadRouter = router
       }
 
       const { photoId } = c.req.valid('param');
-      const { size } = c.req.valid('query');
+      const { size, probe } = c.req.valid('query');
 
       const photoRow = await db.query.photos.findFirst({
         where: eq(photos.id, photoId),
@@ -77,15 +81,50 @@ export const downloadRouter = router
         return c.json({ error: 'Not found' }, 404);
       }
 
-      if (photoRow.mediaType !== 'image') {
-        return c.json({ error: 'Not found' }, 404);
-      }
-
       if (!(await canUserAccessAlbum(user.id, photoRow.album))) {
         return c.json({ error: 'Forbidden' }, 403);
       }
 
       const basename = safeDownloadBasename(photoRow.id);
+
+      if (photoRow.mediaType === 'video') {
+        if (size !== 'full' || !photoRow.r2Key) {
+          return c.json({ error: 'Not found' }, 404);
+        }
+
+        try {
+          if (probe === '1') {
+            const stat = await r2Manager.headObject(env.R2, photoRow.r2Key);
+            const filename = `${basename}${extensionFromContentType(stat.contentType)}`;
+            return new Response(null, {
+              status: 204,
+              headers: {
+                'Content-Type': stat.contentType,
+                'Cache-Control': 'private, no-store',
+                'Content-Disposition': contentDispositionAttachment(filename),
+              },
+            });
+          }
+
+          const obj = await r2Manager.openObject(env.R2, photoRow.r2Key);
+          const filename = `${basename}${extensionFromContentType(obj.contentType)}`;
+          return new Response(obj.body, {
+            status: 200,
+            headers: {
+              'Content-Type': obj.contentType,
+              'Cache-Control': 'private, no-store',
+              'Content-Length': String(obj.size),
+              'Content-Disposition': contentDispositionAttachment(filename),
+            },
+          });
+        } catch {
+          return c.json({ error: 'Not found' }, 404);
+        }
+      }
+
+      if (photoRow.mediaType !== 'image') {
+        return c.json({ error: 'Not found' }, 404);
+      }
 
       if (size === 'full') {
         if (!photoRow.r2Key) {

@@ -51,6 +51,14 @@ interface GetObjectResult {
   size: number;
 }
 
+/** R2 オブジェクトをストリームのまま開いた結果。 */
+interface OpenObjectResult {
+  body: ReadableStream;
+  contentType: string;
+  cacheControl: string;
+  size: number;
+}
+
 /**
  * ファイルサイズ検証の結果
  */
@@ -217,6 +225,60 @@ class R2Manager {
 
     return {
       body,
+      contentType,
+      cacheControl,
+      size: object.size,
+    };
+  }
+
+  /**
+   * R2オブジェクトをボディを読み込まずに開く。
+   * @param r2Bucket - R2バケットインスタンス
+   * @param key - 取得するR2オブジェクトキー
+   * @returns ストリームとメタデータ。オブジェクトがなければ例外
+   */
+  async openObject(r2Bucket: R2Bucket, key: string): Promise<OpenObjectResult> {
+    const object = await r2Bucket.get(key);
+
+    if (!object) {
+      throw new Error('Object not found');
+    }
+
+    const contentType =
+      object.httpMetadata?.contentType ?? 'application/octet-stream';
+    const cacheControl =
+      object.httpMetadata?.cacheControl ?? 'private, no-store';
+
+    return {
+      body: object.body,
+      contentType,
+      cacheControl,
+      size: object.size,
+    };
+  }
+
+  /**
+   * R2オブジェクトのメタデータだけを取得する。
+   * @param r2Bucket - R2バケットインスタンス
+   * @param key - 取得するR2オブジェクトキー
+   * @returns Content-Type とサイズ。オブジェクトがなければ例外
+   */
+  async headObject(
+    r2Bucket: R2Bucket,
+    key: string
+  ): Promise<Omit<OpenObjectResult, 'body'>> {
+    const object = await r2Bucket.head(key);
+
+    if (!object) {
+      throw new Error('Object not found');
+    }
+
+    const contentType =
+      object.httpMetadata?.contentType ?? 'application/octet-stream';
+    const cacheControl =
+      object.httpMetadata?.cacheControl ?? 'private, no-store';
+
+    return {
       contentType,
       cacheControl,
       size: object.size,

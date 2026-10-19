@@ -145,6 +145,61 @@ export function AlbumDetailLightboxDialog({
     }
   };
 
+  const handleDownloadVideo = async () => {
+    if (!item || item.mediaType !== 'video') return;
+
+    const fallbackName = `${item.id}.mp4`;
+    const downloadPath = `/api/download/photo/${encodeURIComponent(item.id)}?size=full`;
+    setIsDownloading(true);
+    try {
+      const res = await api.download.photo[':photoId'].$get(
+        {
+          param: { photoId: item.id },
+          query: { size: 'full', probe: '1' },
+        },
+        { init: { cache: 'no-store' } }
+      );
+
+      if (!res.ok) {
+        await res.body?.cancel();
+        const description =
+          res.status === 403
+            ? 'ダウンロードする権限がありません'
+            : res.status === 404
+              ? '動画が見つかりません'
+              : `ダウンロードに失敗しました (${res.status})`;
+        toast({
+          title: 'ダウンロードできませんでした',
+          description,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const filename = attachmentFilenameFromHeader(
+        res.headers.get('Content-Disposition'),
+        fallbackName
+      );
+      await res.body?.cancel();
+
+      const anchor = document.createElement('a');
+      anchor.href = downloadPath;
+      anchor.download = filename;
+      anchor.rel = 'noopener';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch {
+      toast({
+        title: 'ダウンロードできませんでした',
+        description: 'ネットワークエラーが発生しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <Dialog open={Boolean(item)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -176,6 +231,23 @@ export function AlbumDetailLightboxDialog({
           </Button>
 
           <div className="flex items-center gap-1">
+            {item.mediaType === 'video' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-full text-foreground"
+                disabled={isDownloading}
+                aria-label="動画をダウンロード"
+                onClick={() => void handleDownloadVideo()}
+              >
+                {isDownloading ? (
+                  <SpinnerIcon className="size-5 animate-spin" />
+                ) : (
+                  <Download className="size-5" />
+                )}
+              </Button>
+            )}
             {item.mediaType === 'image' && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
