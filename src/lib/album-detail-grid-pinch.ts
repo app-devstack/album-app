@@ -11,6 +11,12 @@ const PINCH_OUT_RATIO = 1.18;
 /** 指を閉じたとみなす距離比。 */
 const PINCH_IN_RATIO = 1 / PINCH_OUT_RATIO;
 
+/** 距離比のずれをグリッド拡縮へ渡す割合。 */
+const SCALE_GAIN = 0.4;
+
+/** ピンチ中の拡縮の上限（1 からの差）。 */
+const SCALE_LIMIT = 0.08;
+
 /**
  * 保存値をスマホの列数として解釈する。
  * @description 以前保存した 5 列は 4 列として読む。
@@ -24,6 +30,27 @@ export function parseAlbumDetailPhoneColumns(
     return value;
   }
   return 2;
+}
+
+/**
+ * ピンチ中のグリッド全体の倍率を返す。
+ * @param ratio - 開始時の指距離を 1 とした現在の距離
+ */
+export function pinchFollowScale(ratio: number): number {
+  const delta = (ratio - 1) * SCALE_GAIN;
+  const clamped = Math.min(SCALE_LIMIT, Math.max(-SCALE_LIMIT, delta));
+  return 1 + clamped;
+}
+
+/**
+ * グリッドを拡大したとき、下の要素を覆わないために足す下余白。
+ * @description 上端を基準に拡大する。縮小では余白を足さない。
+ * @param height - 拡縮前のグリッドの高さ
+ * @param scale - グリッド全体の倍率
+ */
+export function gridScaleMarginBottom(height: number, scale: number): number {
+  if (scale <= 1 || height <= 0) return 0;
+  return Math.ceil(height * (scale - 1));
 }
 
 /**

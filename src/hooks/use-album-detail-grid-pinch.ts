@@ -1,7 +1,12 @@
 'use client';
 
-import { nextPhoneColumnsFromPinchRatio } from '@/lib/album-detail-grid-pinch';
+import {
+  gridScaleMarginBottom,
+  nextPhoneColumnsFromPinchRatio,
+  pinchFollowScale,
+} from '@/lib/album-detail-grid-pinch';
 import { useAlbumDetailGridStore } from '@/stores/albumDetailGridStore';
+import gsap from 'gsap';
 import { useEffect, type RefObject } from 'react';
 
 /** 今 2 列になる幅。Tailwind の `sm`（640px）未満。 */
@@ -16,7 +21,7 @@ export interface UseAlbumDetailGridPinchOptions {
 
 /**
  * スマホ幅のメディア一覧で、2本指ピンチにより列数を1段階変える。
- * @description 指の距離だけを見て、離したときに隣の列へ進める。
+ * @description 指が触れているあいだはグリッド全体を少し拡縮し、離したときに隣の列へ進める。
  */
 export function useAlbumDetailGridPinch({
   gridRef,
@@ -36,6 +41,40 @@ export function useAlbumDetailGridPinch({
     };
 
     const isPhone = () => window.matchMedia(PHONE_GRID_QUERY).matches;
+
+    const reducedMotion = () =>
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const applyGridScale = (scale: number) => {
+      gsap.set(grid, {
+        scale,
+        transformOrigin: 'center top',
+        marginBottom: gridScaleMarginBottom(grid.offsetHeight, scale),
+      });
+    };
+
+    const clearGridScale = () => {
+      gsap.set(grid, { clearProps: 'transform,marginBottom' });
+    };
+
+    const settleGridScale = () => {
+      if (reducedMotion()) {
+        clearGridScale();
+        return;
+      }
+      gsap.to(grid, {
+        scale: 1,
+        marginBottom: 0,
+        duration: 0.22,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        transformOrigin: 'center top',
+        onComplete: () => {
+          if (gesture.active) return;
+          clearGridScale();
+        },
+      });
+    };
 
     const distance = (touches: TouchList) => {
       const first = touches[0];
@@ -57,8 +96,13 @@ export function useAlbumDetailGridPinch({
           )
         : gesture.startColumns;
 
-      if (next === gesture.startColumns) return;
+      if (next === gesture.startColumns) {
+        settleGridScale();
+        return;
+      }
 
+      gsap.killTweensOf(grid);
+      clearGridScale();
       captureBeforeLayoutChange();
       useAlbumDetailGridStore.getState().setPhoneColumns(next);
     };
@@ -67,6 +111,7 @@ export function useAlbumDetailGridPinch({
       if (!isPhone() || event.touches.length !== 2) return;
       const startDistance = distance(event.touches);
       if (startDistance <= 0) return;
+      gsap.killTweensOf(grid);
       gesture.active = true;
       gesture.startDistance = startDistance;
       gesture.lastRatio = 1;
@@ -79,6 +124,8 @@ export function useAlbumDetailGridPinch({
       const nextDistance = distance(event.touches);
       if (gesture.startDistance <= 0 || nextDistance <= 0) return;
       gesture.lastRatio = nextDistance / gesture.startDistance;
+      if (reducedMotion()) return;
+      applyGridScale(pinchFollowScale(gesture.lastRatio));
     };
 
     const onTouchEnd = (event: TouchEvent) => {
@@ -97,6 +144,8 @@ export function useAlbumDetailGridPinch({
       grid.removeEventListener('touchmove', onTouchMove);
       grid.removeEventListener('touchend', onTouchEnd);
       grid.removeEventListener('touchcancel', onTouchEnd);
+      gsap.killTweensOf(grid);
+      clearGridScale();
     };
   }, [active, captureBeforeLayoutChange, gridRef]);
 }
