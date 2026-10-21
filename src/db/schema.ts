@@ -170,6 +170,21 @@ export const photos = sqliteTable('photos', {
     .default(sql`(date('now'))`),
 });
 
+/** 写真・動画を1件だけ公開する限定URL。オフにすると行ごと消す。 */
+export const mediaShareLinks = sqliteTable('media_share_links', {
+  token: text('token').primaryKey(),
+  photoId: text('photo_id')
+    .notNull()
+    .unique()
+    .references(() => photos.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
 // ============================================================
 // memos テーブル
 // ============================================================
@@ -221,10 +236,22 @@ export const albumsRelations = relations(albums, ({ one, many }) => ({
   group: one(groups, { fields: [albums.groupId], references: [groups.id] }),
 }));
 
-export const photosRelations = relations(photos, ({ one }) => ({
+export const photosRelations = relations(photos, ({ one, many }) => ({
   album: one(albums, {
     fields: [photos.albumId],
     references: [albums.id],
+  }),
+  shareLinks: many(mediaShareLinks),
+}));
+
+export const mediaShareLinksRelations = relations(mediaShareLinks, ({ one }) => ({
+  photo: one(photos, {
+    fields: [mediaShareLinks.photoId],
+    references: [photos.id],
+  }),
+  creator: one(users, {
+    fields: [mediaShareLinks.createdBy],
+    references: [users.id],
   }),
 }));
 
@@ -241,6 +268,8 @@ export type Album = typeof albums.$inferSelect;
 export type NewAlbum = typeof albums.$inferInsert;
 export type Photo = typeof photos.$inferSelect;
 export type NewPhoto = typeof photos.$inferInsert;
+export type MediaShareLink = typeof mediaShareLinks.$inferSelect;
+export type NewMediaShareLink = typeof mediaShareLinks.$inferInsert;
 export type Memo = typeof memos.$inferSelect;
 export type NewMemo = typeof memos.$inferInsert;
 export type User = typeof users.$inferSelect;

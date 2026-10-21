@@ -11,6 +11,7 @@ import {
   ArrowLeftRightIcon,
   Bell,
   FileText,
+  Link2,
   LogOut,
   Shield,
   UsersIcon,
@@ -85,6 +86,18 @@ export function SettingsPage() {
             <SettingsThemeColorSelect />
           </div>
         </section> */}
+
+        <section aria-labelledby="section-shares">
+          <SettingsSectionHeader label="公開" />
+          <div className="flex flex-col gap-2" id="section-shares">
+            <NavigateRow
+              icon={<Link2 size={16} />}
+              label="公開一覧"
+              description="限定公開中の写真・動画をオフにする"
+              href="/settings/shares"
+            />
+          </div>
+        </section>
 
         <section aria-labelledby="section-info-label">
           <SettingsSectionHeader label="アプリ情報" />

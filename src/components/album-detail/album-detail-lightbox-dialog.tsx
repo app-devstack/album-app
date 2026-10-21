@@ -1,5 +1,6 @@
 'use client';
 
+import { AlbumDetailShareDialog } from '@/components/album-detail/album-detail-share-dialog';
 import { VideoPlayer } from '@/components/common/video-player';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +19,7 @@ import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
   Download,
+  Link2,
   MoreHorizontal,
   RefreshCw,
   Loader2Icon as SpinnerIcon,
@@ -56,11 +58,13 @@ export function AlbumDetailLightboxDialog({
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const { mutateAsync: regenerateThumbnail, isPending: isRegenerating } =
     useRegenerateThumbnail();
 
   useEffect(() => {
     setImageLoaded(false);
+    setShareOpen(false);
   }, [item?.id, item?.mediaType]);
 
   if (!item) return null;
@@ -201,7 +205,16 @@ export function AlbumDetailLightboxDialog({
   };
 
   return (
-    <Dialog open={Boolean(item)} onOpenChange={(open) => !open && onClose()}>
+    <>
+    <Dialog
+      open={Boolean(item)}
+      onOpenChange={(open) => {
+        if (!open) {
+          setShareOpen(false);
+          onClose();
+        }
+      }}
+    >
       <DialogContent
         showCloseButton={false}
         className={cn(
@@ -231,6 +244,16 @@ export function AlbumDetailLightboxDialog({
           </Button>
 
           <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-full text-foreground"
+              aria-label="限定公開リンク"
+              onClick={() => setShareOpen(true)}
+            >
+              <Link2 className="size-5" />
+            </Button>
             {item.mediaType === 'video' && (
               <Button
                 type="button"
@@ -365,5 +388,12 @@ export function AlbumDetailLightboxDialog({
         </div>
       </DialogContent>
     </Dialog>
+    <AlbumDetailShareDialog
+      open={shareOpen}
+      onOpenChange={setShareOpen}
+      photoId={item.id}
+      mediaType={item.mediaType}
+    />
+    </>
   );
 }

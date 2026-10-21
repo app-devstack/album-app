@@ -8,6 +8,7 @@ import { joinRouter } from './routes/join';
 import { memosRouter } from './routes/memos';
 import { nativeOAuthHandoffRouter } from './routes/native-oauth-handoff';
 import { photosRouter } from './routes/photos';
+import { sharesRouter } from './routes/shares';
 import { profileRouter } from './routes/profile';
 
 const app = createApp().basePath('/api');
@@ -28,7 +29,8 @@ const route = app
   .route('/download', downloadRouter)
   .route('/photos', photosRouter)
   .route('/memos', memosRouter)
-  .route('/profile', profileRouter);
+  .route('/profile', profileRouter)
+  .route('/shares', sharesRouter);
 
 export const GET = handle(route);
 export const POST = handle(route);
