@@ -27,6 +27,8 @@ type UseFlipLayoutAnimationOptions = {
   respectReducedMotion?: boolean;
   /** `Flip.from` に渡すオプション（既定値にマージ） */
   flipFromVars?: Partial<Flip.FromToVars>;
+  /** true のとき、移動中は親の高さを変える前以上に保つ */
+  preserveRootHeight?: boolean;
 };
 
 /**
@@ -42,6 +44,7 @@ type UseFlipLayoutAnimationOptions = {
  *
  * 初回マウントや、`captureBeforeLayoutChange` を呼ばずに `layoutKey` だけが変わった場合はアニメーションしない。
  * `prefers-reduced-motion: reduce` のときは `respectReducedMotion` が true（既定）なら `Flip.from` をスキップする。
+ * `preserveRootHeight` が true のときは、移動が終わるまで親の高さを変える前以上に保つ。
  *
  * @example
  * トグルでグリッド列数を切り替える例。
@@ -89,9 +92,11 @@ export function useFlipLayoutAnimation({
   enabled = true,
   respectReducedMotion = true,
   flipFromVars,
+  preserveRootHeight = false,
 }: UseFlipLayoutAnimationOptions) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const pendingFlipStateRef = useRef<Flip.FlipState | null>(null);
+  const capturedRootHeightRef = useRef<number | null>(null);
   const flipFromVarsRef = useRef(flipFromVars);
   flipFromVarsRef.current = flipFromVars;
 
@@ -101,12 +106,17 @@ export function useFlipLayoutAnimation({
     if (!root) return;
     const targets = root.querySelectorAll<HTMLElement>(itemSelector);
     if (targets.length === 0) return;
+    if (preserveRootHeight) {
+      capturedRootHeightRef.current = root.offsetHeight;
+    }
     pendingFlipStateRef.current = Flip.getState(targets);
-  }, [enabled, itemSelector]);
+  }, [enabled, itemSelector, preserveRootHeight]);
 
   useLayoutEffect(() => {
     const state = pendingFlipStateRef.current;
+    const capturedHeight = capturedRootHeightRef.current;
     pendingFlipStateRef.current = null;
+    capturedRootHeightRef.current = null;
     if (!state || !enabled) return;
 
     if (
@@ -117,11 +127,24 @@ export function useFlipLayoutAnimation({
       return;
     }
 
+    const root = rootRef.current;
+    if (preserveRootHeight && root && capturedHeight != null) {
+      root.style.height = `${Math.max(capturedHeight, root.offsetHeight)}px`;
+    }
+
+    const userOnComplete = flipFromVarsRef.current?.onComplete;
+
     Flip.from(state, {
       ...DEFAULT_FLIP_FROM,
       ...flipFromVarsRef.current,
+      onComplete: () => {
+        if (preserveRootHeight && root) {
+          root.style.height = '';
+        }
+        userOnComplete?.();
+      },
     });
-  }, [layoutKey, enabled, respectReducedMotion]);
+  }, [layoutKey, enabled, respectReducedMotion, preserveRootHeight]);
 
   return { rootRef, captureBeforeLayoutChange };
 }
