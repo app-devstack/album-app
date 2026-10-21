@@ -11,6 +11,8 @@ import {
 import { Loading } from '@/components/ui/loading';
 import { AlbumMemoProvider } from '@/contexts/album-memo-context';
 import { Album, Photo } from '@/db/schema';
+import { useAlbumDetailGridPinch } from '@/hooks/use-album-detail-grid-pinch';
+import { useFlipLayoutAnimation } from '@/hooks/use-flip-layout';
 import { albumKeys } from '@/hooks/fetchers/use-albums';
 import {
   photoKeys,
@@ -24,12 +26,14 @@ import {
   type AccentColor,
   type AccentColorConfig,
 } from '@/lib/data';
+import { type AlbumDetailPhoneColumns } from '@/lib/album-detail-grid-pinch';
 import { formatJapaneseDate } from '@/lib/date';
 import {
   isNative,
   sendToNative,
   type NativePendingUploadItem,
 } from '@/lib/native-bridge';
+import { useAlbumDetailGridStore } from '@/stores/albumDetailGridStore';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -497,6 +501,13 @@ interface AlbumMediaGridProps {
   onPendingUploadPress: (item: NativePendingUploadItem) => void;
 }
 
+const PHONE_GRID_CLASS: Record<AlbumDetailPhoneColumns, string> = {
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+  5: 'grid-cols-5',
+};
+
 function AlbumMediaGrid({
   isLoadingPhotos,
   photos,
@@ -507,6 +518,22 @@ function AlbumMediaGrid({
   onOpenLightbox,
   onPendingUploadPress,
 }: AlbumMediaGridProps) {
+  const phoneColumns = useAlbumDetailGridStore((state) => state.phoneColumns);
+  const showGrid =
+    !isLoadingPhotos &&
+    (photos.length > 0 ||
+      uploadingItems.length > 0 ||
+      pendingUploads.length > 0);
+  const { rootRef, captureBeforeLayoutChange } = useFlipLayoutAnimation({
+    layoutKey: phoneColumns,
+    flipFromVars: { duration: 0.28, ease: 'power2.out' },
+  });
+  useAlbumDetailGridPinch({
+    gridRef: rootRef,
+    active: showGrid,
+    captureBeforeLayoutChange,
+  });
+
   if (isLoadingPhotos) {
     return (
       <Loading
@@ -529,27 +556,37 @@ function AlbumMediaGrid({
 
   return (
     <div className="relative">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+      <div
+        ref={rootRef}
+        className={cn(
+          'grid touch-pan-y gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4',
+          PHONE_GRID_CLASS[phoneColumns]
+        )}
+      >
         {photos.map((item) => (
-          <AlbumDetailPhotoCell
-            key={item.id}
-            item={item}
-            accentConfig={accentConfig}
-            onOpen={onOpenLightbox}
-          />
+          <div key={item.id} data-flip-item className="min-w-0">
+            <AlbumDetailPhotoCell
+              item={item}
+              accentConfig={accentConfig}
+              onOpen={onOpenLightbox}
+            />
+          </div>
         ))}
 
         {pendingUploads.map((item) => (
-          <AlbumDetailPendingPhotoCell
-            key={item.id}
-            previewDataUrl={item.previewDataUrl}
-            mediaType={item.mediaType}
-            status={item.status ?? 'pending'}
-            onPress={() => onPendingUploadPress(item)}
-          />
+          <div key={item.id} data-flip-item className="min-w-0">
+            <AlbumDetailPendingPhotoCell
+              previewDataUrl={item.previewDataUrl}
+              mediaType={item.mediaType}
+              status={item.status ?? 'pending'}
+              onPress={() => onPendingUploadPress(item)}
+            />
+          </div>
         ))}
 
-        <AlbumDetailAddMediaCell onAddClick={onAddClick} />
+        <div data-flip-item className="min-w-0">
+          <AlbumDetailAddMediaCell onAddClick={onAddClick} />
+        </div>
       </div>
 
       <AlbumDetailUploadingOverlay
