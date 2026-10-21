@@ -505,7 +505,6 @@ const PHONE_GRID_CLASS: Record<AlbumDetailPhoneColumns, string> = {
   2: 'grid-cols-2',
   3: 'grid-cols-3',
   4: 'grid-cols-4',
-  5: 'grid-cols-5',
 };
 
 function AlbumMediaGrid({
@@ -526,6 +525,7 @@ function AlbumMediaGrid({
       pendingUploads.length > 0);
   const { rootRef, captureBeforeLayoutChange } = useFlipLayoutAnimation({
     layoutKey: phoneColumns,
+    preserveRootHeight: true,
     flipFromVars: { duration: 0.28, ease: 'power2.out' },
   });
   useAlbumDetailGridPinch({
